@@ -1,12 +1,7 @@
-"""A simple, explainable scoring model, used twice.
+"""Regularised logistic regression on send-time inputs, with exact per-input contributions.
 
-It's a logistic regression: each fact about a quote (type of work, how the customer found the
-business, how fast the quote went out) adds or subtracts a fixed amount, and the total becomes a
-chance between 0 and 1. We use it once for "will they say yes?" and once for "if they say no, will
-they say it or just go quiet?" (timing.py explains why the second one matters).
-
-A more complex model (gradient boosting) did worse when we tested it (notebook 04). This one also
-lets us show exactly how much each fact moved a quote's chance.
+Used twice: for P(accept) and, on lost quotes, for P(declined rather than expired). Chosen over
+gradient boosting on the validation folds (notebook 04).
 """
 
 from __future__ import annotations

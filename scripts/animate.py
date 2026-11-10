@@ -1,9 +1,7 @@
-"""An animated follow-up board for one business, over three weeks of December 2024.
+"""The README animation: one business's waiting quotes, every four hours for three weeks.
 
-Each frame moves the clock on four hours. Each dot is a quote waiting for a reply: further right
-means it has waited longer, higher means a better chance of a yes, bigger means more money. The
-faint line ahead of a dot shows where its chance goes if the customer stays quiet. The three ringed
-dots are the ones to call today.
+x = days without a reply, y = chance of a yes, size = amount; the faint line is the chance if the
+customer stays quiet; ringed dots are today's top three.
 
     python scripts/animate.py [--sp SP0267] [--start 2024-12-01] [--days 19]
 """

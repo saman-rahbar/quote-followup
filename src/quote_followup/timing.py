@@ -1,22 +1,13 @@
-"""What a customer's silence tells us.
+"""What days without a reply say about the outcome.
 
-A quote ends one of three ways: the customer says yes, says no, or never replies and the quote
-expires. Yeses usually come within a day or two, nos a little later, and expiries never come at
-all. So the longer a quote goes without a reply, the more it looks like one that will expire.
+A quote ends in a yes, a no, or silence until it expires. From settled quotes this learns, per stratum
+(type of work by default), the share of yeses and of nos still to come after a days, and turns
+silence into a log-odds shift:
 
-This file learns, from past quotes, how quickly yeses and nos arrive, and turns "no reply for N
-days" into an adjustment to the chance of a yes. In symbols, with a = days waiting:
+    logit P(yes | quiet at a) = logit p + log S_yes(a) - log[ q S_no(a) + (1 - q) ]
 
-    logit P(yes | no reply after a days) = logit P(yes) + log S_yes(a) - log[ q S_no(a) + (1 - q) ]
-
-S_yes(a) and S_no(a) are the shares of past yeses and nos that hadn't arrived yet after a days.
-q is how likely this customer is to say no out loud rather than just go quiet. It matters:
-repeat and referred customers who turn a quote down usually say so, while marketplace leads
-usually just stop replying. So a quiet week from a repeat customer is less worrying.
-
-Statisticians call this a mixture model for competing outcomes (Larson and Dinse 1985). It
-assumes reply speed depends on the type of work and on the answer, but not on anything else about
-the quote. Notebook 05 checks how well that holds.
+q is the chance a lost quote is declined rather than left to expire. A mixture model for competing
+outcomes (Larson and Dinse 1985). Assumes reply speed depends only on the stratum and the outcome.
 """
 
 from __future__ import annotations
@@ -48,12 +39,8 @@ class _Curves:
 
 @dataclass(frozen=True)
 class DecisionTiming:
-    """How fast replies come, learned separately for each group of quotes.
-
-    `segments` lists the columns that define a group, broadest first (by default just the type of
-    work). A group with fewer than `min_quotes` past quotes is too small to trust on its own, so it
-    borrows the curve of the broader group above it, and in the end the curve for all quotes.
-    """
+    """Reply-speed curves per stratum. A stratum with fewer than `min_quotes` settled quotes falls
+    back to its parent stratum, ending at the pooled curve."""
 
     segments: tuple[str, ...]
     curves: dict[tuple, _Curves]

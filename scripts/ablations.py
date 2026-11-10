@@ -1,9 +1,7 @@
-"""The experiments that decided how the model is built (notebook 04 walks through them).
+"""Model-selection experiments (notebook 04), on data settled before the backtest starts.
 
-All of this uses data from before 1 Sep 2024, the day the final test starts, so the test stays a
-fair one. It works like the final test does: on the first of April, May, June and July the model
-learns from what was known then, and is scored on the quotes sent that month. Quotes sent after
-17 Jul are left out, because some of their answers weren't in yet by 1 Sep.
+Rolling origins on 1 April, May, June and July; each fold fits on settled quotes and scores that
+month. Quotes sent after 17 July are excluded so every label is known by 1 September.
 
     python scripts/ablations.py
 """

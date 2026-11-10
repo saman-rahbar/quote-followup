@@ -1,9 +1,5 @@
-"""The different ways of putting a morning's open quotes in order.
-
-Our model and the simple rules an owner might use already all work the same way: learn from what
-was known on a given date, then give each open quote a priority (higher means call it sooner). That
-shared shape is what lets the backtest compare them fairly, and it means a new idea only needs these
-two methods to be tested against the rest.
+"""Ways of ordering a morning's waiting quotes, behind one interface: `fit` on what was known at a
+date, then `priority` per quote (higher means call sooner). The backtest compares them all through it.
 """
 
 from __future__ import annotations

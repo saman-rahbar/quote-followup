@@ -1,12 +1,8 @@
-"""Replays past mornings to see which way of ordering quotes would have done best.
+"""Replay of past mornings, and every score that comes out of it.
 
-We go month by month from September to December 2024. On the first of each month every method
-relearns from what was known by then, and then, every morning of that month, puts each business's
-waiting quotes in order. Only after that do we look up which quotes were actually accepted. This
-is the standard way to test a forecast on data it has never seen (Tashman 2000).
-
-It tells us whether the list puts the quotes that went on to say yes at the top. It can't tell
-us whether calling them changed anything, because the data has no record of follow-up calls.
+Each month every method refits on settled quotes, then ranks each business's waiting quotes at 8am
+on every day of that month; outcomes are joined only afterwards (Tashman 2000). This measures who the
+list finds, not what a call changes: the data has no record of follow-ups.
 """
 
 from __future__ import annotations
@@ -114,14 +110,10 @@ METRICS = {
 
 
 def summarise(lists: pd.DataFrame, reference: str, draws: int, seed: int) -> pd.DataFrame:
-    """Each method's scores, how far each is from `reference`, and how sure we can be.
+    """Each metric per scorer and k, the gap to `reference`, and 95% intervals.
 
-    The ranges come from re-running the numbers many times on random re-draws of the businesses
-    (a bootstrap). We re-draw whole businesses because one business's mornings are alike, and
-    treating them as independent would make us look more certain than we are (Field and Welsh 2007).
-    Every method sees the same re-draws, so the differences are like-for-like. The `_adj` ranges
-    are widened because several methods are compared at once (a Bonferroni correction).
-    """
+    Intervals resample whole businesses (Field and Welsh 2007), paired across scorers. `_adj` columns
+    widen the gap intervals by Bonferroni across the rivals."""
     rng = np.random.default_rng(seed)
     rows = []
     for k, at_k in lists.groupby("k"):
@@ -198,15 +190,10 @@ AGE_BANDS = (0, 1, 3, 7, 14, 30)
 
 
 def subgroup_calibration(predictions: pd.DataFrame, min_rows: int = 100) -> pd.DataFrame:
-    """Did the chances we gave come true, group by group?
+    """Predicted vs observed win rate in work x (source or send speed) x age cells.
 
-    Being right on average can hide being too high for one kind of quote and too low for another.
-    So we group quotes by type of work, by how the customer found the business (or how fast the
-    quote went out), and by days waiting, then compare the chance we gave with what happened. The
-    z column says how surprising each gap is. A quote shows up on many mornings, so its mornings
-    are treated as one unit when judging that. Groups where every quote said yes, or every quote
-    said no, are skipped, because the surprise measure breaks down there.
-    """
+    z uses a standard error clustered by quote, since one quote spans many mornings. Cells with no
+    wins or no losses are skipped: the clustered error is zero there."""
     bands = pd.cut(predictions["age_days"], AGE_BANDS, include_lowest=True).astype(str)
     cells = []
     for second in ("customer_channel", "send_speed"):
@@ -246,13 +233,10 @@ def subgroup_summary(cells: pd.DataFrame, alpha: float = 0.05) -> dict[str, floa
 
 
 def prediction_quality(predictions: pd.DataFrame, bins: int = 10) -> dict[str, float]:
-    """How good the chances are: do they separate yeses from nos, and do they come true?
+    """Discrimination and calibration of the win chance.
 
-    AUC is the chance that a random quote that said yes was given a higher chance than a random one
-    that said no (0.5 is a coin flip, 1 is perfect). The pooled figures count a quote once per
-    morning it waited, so a quote ignored for 20 days counts 20 times, mostly as an easy "no". The
-    first-morning and same-age figures don't have that problem, so they are the fairer ones.
-    """
+    Pooled AUC counts a quote once per waiting morning, which favours long-ignored losses; the
+    first-morning and same-age AUCs do not."""
     y, p = predictions["won"].to_numpy(), predictions["p_now"].to_numpy()
     edges = np.quantile(p, np.linspace(0, 1, bins + 1))
     bucket = np.clip(np.searchsorted(edges, p, side="right") - 1, 0, bins - 1)

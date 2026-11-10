@@ -1,11 +1,9 @@
-"""Proof that we read the data exactly as it was supplied, before trusting anything built on it.
+"""Integrity checks: the CSVs are the supplied files, read exactly as documented.
 
-Each check reports a row: what was checked, on which table, what it found, and whether it passed.
-Nothing here repairs data. If a check fails, stop and find out why.
-Run it with `quote-followup audit --zip ../data.zip`.
+Each check returns (check, table, detail, ok); a failure means stop and investigate. Files are read
+as text before parsing, so unparseable values are counted, not silently coerced.
 
-Every file is first read as plain text and only then converted, so a value that can't be read
-properly gets counted as a problem instead of slipping through as a blank.
+    quote-followup audit --zip ../data.zip
 """
 
 from __future__ import annotations
