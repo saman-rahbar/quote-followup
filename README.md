@@ -179,8 +179,8 @@ scope and time, so treat them as leads rather than findings:
 - Failed payments happen only through Jobber Payments: about a quarter of attempts, with bank
   transfers failing nearly twice as often as cards. Every one of those invoices was paid later.
 - Visits get shakier the more they're moved: one in ten is cancelled overall, one in five after three reschedules.
-- Quotes sent per month tripled during 2024 (979 in January, 2,958 in December), so any model here
-  needs regular refreshing.
+- Quotes sent per month more than tripled from January to November (979 to 3,520; December is a
+  partial month), so any model here needs regular refreshing.
 - All 30 businesses that cancelled their subscription kept using the product afterwards.
 - Declines split almost evenly between price, timing, competitors, no response and changed scope,
   and 31% give no reason at all.

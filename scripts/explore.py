@@ -336,7 +336,7 @@ def other_patterns(data_dir: Path, quotes: pd.DataFrame) -> pd.DataFrame:
             "visits cancelled: overall, after 3+ reschedules",
             f"{finished['status'].eq('cancelled').mean():.0%}, {cancelled[3]:.0%}",
         ),
-        ("quotes sent: January vs December 2024", f"{sent.iloc[0]:,} vs {sent.iloc[-1]:,}"),
+        ("quotes sent: January vs November 2024 (December is partial)", f"{sent.iloc[0]:,} vs {sent.iloc[-2]:,}"),
         (
             "cancelled businesses still active afterwards",
             f"{left.loc[after, 'sp_id'].nunique()} of {providers['subscription_end_at'].notna().sum()}",

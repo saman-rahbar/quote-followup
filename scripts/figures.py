@@ -85,9 +85,11 @@ def signals(quotes: pd.DataFrame) -> None:
     width = 0.26
     for i, (workflow, colour) in enumerate(style.WORKFLOW_COLOURS.items()):
         x = np.arange(len(channels)) + (i - 1) * width
-        third.bar(
-            x, share.loc[channels, workflow], width=width - 0.03, color=colour, label=style.WORKFLOW_NAMES[workflow]
-        )
+        heights = share.loc[channels, workflow]
+        third.bar(x, heights, width=width - 0.03, color=colour, label=style.WORKFLOW_NAMES[workflow])
+        for xi, h in zip(x, heights, strict=True):
+            if h == 0:
+                third.annotate("0%", (xi, 0), xytext=(0, 3), textcoords="offset points", ha="center", fontsize=8)
     third.set_xticks(range(len(channels)), [style.CHANNEL_NAMES.get(c, c) for c in channels], fontsize=9)
     third.set_ylim(0, 0.85)
     third.yaxis.set_major_formatter(lambda v, _: f"{v:.0%}")
@@ -130,6 +132,8 @@ def evidence(summary: pd.DataFrame, cells: pd.DataFrame, age_cells: pd.DataFrame
     ax.set(
         xlim=(0, 0.95),
         ylim=(0, 0.95),
+        xticks=np.arange(0, 0.95, 0.2),
+        yticks=np.arange(0, 0.95, 0.2),
         ylabel="share that actually said yes",
         xlabel=(
             "chance we gave\n(each dot is a group of similar quotes: same work,\n"
@@ -181,10 +185,10 @@ def evidence(summary: pd.DataFrame, cells: pd.DataFrame, age_cells: pd.DataFrame
 
 def architecture() -> None:
     """How the code is laid out, one box per file. Written for engineers, so it uses file names."""
-    fig, ax = plt.subplots(figsize=(12, 4.6))
+    fig, ax = plt.subplots(figsize=(12.5, 5))
     ax.set_axis_off()
-    ax.set_xlim(0, 12)
-    ax.set_ylim(0, 4.6)
+    ax.set_xlim(0, 12.4)
+    ax.set_ylim(0, 5.1)
 
     def box(x, y, w, h, title, body, colour=style.INK_2):
         ax.add_patch(
@@ -196,10 +200,11 @@ def architecture() -> None:
     def arrow(a, b):
         ax.add_patch(FancyArrowPatch(a, b, arrowstyle="-|>", mutation_scale=12, color=style.MUTED, lw=1.2))
 
-    box(0.1, 1.6, 2.0, 1.5, "data.py", "quotes, customers,\nservice providers\njoined on (sp_id,\ncustomer_id)")
+    box(0.1, 2.0, 2.0, 1.5, "data.py", "quotes, customers,\nservice providers\njoined on (sp_id,\ncustomer_id)")
+    box(0.1, 0.2, 2.0, 1.3, "audit.py", "86 checks: zip bytes,\ntypes, links,\ndaily counts")
     box(
         2.6,
-        1.6,
+        2.0,
         2.1,
         1.5,
         "timeline.py",
@@ -207,40 +212,39 @@ def architecture() -> None:
     )
     box(
         5.2,
-        2.65,
+        3.05,
         2.4,
         1.55,
         "propensity.py",
-        "two logistic regressions\non workflow, channel,\nhours to send: P(win)\nand P(decline | lost)",
+        "two logistic regressions:\nP(yes) and\nP(decline | lost)",
         style.HIGHLIGHT,
     )
     box(
         5.2,
-        0.45,
+        0.85,
         2.4,
         1.55,
         "timing.py",
-        "how fast accepts and\ndeclines arrive, per\nworkflow; expiries\nnever answer",
+        "how fast yeses and\nnos arrive, per\nworkflow; expiries\nnever reply",
         style.HIGHLIGHT,
     )
-    box(8.1, 1.6, 1.8, 1.5, "scorers.py", "logit p_now =\nlogit p_send + shift\nexpected $ = p × $\n+ rules of thumb")
-    box(10.3, 2.65, 1.6, 1.25, "board.py", "this morning's\nlist and reasons")
-    box(10.3, 0.75, 1.6, 1.25, "backtest.py", "walk forward,\nresample SPs")
-    arrow((2.1, 2.35), (2.6, 2.35))
-    arrow((4.7, 2.6), (5.2, 3.3))
-    arrow((4.7, 2.1), (5.2, 1.3))
-    arrow((7.6, 3.3), (8.1, 2.6))
-    arrow((7.6, 1.3), (8.1, 2.1))
-    arrow((9.9, 2.6), (10.3, 3.2))
-    arrow((9.9, 2.1), (10.3, 1.4))
-    ax.text(
-        0.1,
-        4.45,
-        "Every step only sees what was known on the day it is run for",
-        weight="bold",
-        fontsize=12,
-        color=style.INK,
-    )
+    box(8.1, 2.0, 1.8, 1.5, "scorers.py", "our list and\nevery rival,\none interface")
+    box(10.3, 3.35, 1.9, 1.15, "board.py", "this morning's\nlist and reasons")
+    box(10.3, 1.95, 1.9, 1.15, "backtest.py", "replay, ranges,\ncalibration checks")
+    box(10.3, 0.55, 1.9, 1.15, "artifacts.py", "saved model and\nreadable summary")
+    for a, b in [
+        ((2.1, 2.75), (2.6, 2.75)),
+        ((1.1, 2.0), (1.1, 1.5)),
+        ((4.7, 3.0), (5.2, 3.7)),
+        ((4.7, 2.5), (5.2, 1.7)),
+        ((7.6, 3.7), (8.1, 3.0)),
+        ((7.6, 1.7), (8.1, 2.5)),
+        ((9.9, 3.1), (10.3, 3.9)),
+        ((9.9, 2.75), (10.3, 2.5)),
+        ((9.9, 2.4), (10.3, 1.1)),
+    ]:
+        arrow(a, b)
+    ax.text(0.1, 4.85, "Every step only sees what was known on the day it is run for", weight="bold", fontsize=12)
     fig.savefig(ASSETS / "architecture.png")
     plt.close(fig)
 
@@ -304,9 +308,9 @@ def eda_transform(quotes: pd.DataFrame):
     """Hours from writing to sending, before and after the log transform the model uses."""
     fig, (raw, logged) = plt.subplots(1, 2, figsize=(11, 3.6))
     raw.hist(quotes["hours_to_send"], bins=60, color=style.MUTED)
-    raw.set(title="Hours to send, as recorded", xlabel="hours", ylabel="quotes")
+    raw.set(title="Hours to send, as recorded", xlabel="hours", ylabel="quotes", xlim=(0, None))
     logged.hist(quotes["log_hours_to_send"], bins=60, color=style.HIGHLIGHT)
-    logged.set(title="After log(1 + hours)", xlabel="log(1 + hours)")
+    logged.set(title="After log(1 + hours)", xlabel="log(1 + hours)", xlim=(0, None))
     raw.text(0.95, 0.9, f"skew {quotes['hours_to_send'].skew():.1f}", transform=raw.transAxes, ha="right")
     logged.text(0.95, 0.9, f"skew {quotes['log_hours_to_send'].skew():.1f}", transform=logged.transAxes, ha="right")
     return _done(fig)
@@ -327,7 +331,9 @@ def eda_quotes(quotes: pd.DataFrame):
             color=colour,
             label=style.WORKFLOW_NAMES[workflow],
         )
-    volume.set(title="Quotes sent per month", ylabel="quotes")
+    volume.set(title="Quotes sent per month (December is partial: data ends 24 Dec)", ylabel="quotes")
+    volume.axvspan(pd.Timestamp("2024-11-16"), pd.Timestamp("2024-12-16"), color=style.GRID, alpha=0.6, lw=0)
+    volume.set_xlim(pd.Timestamp("2023-12-15"), pd.Timestamp("2024-12-16"))
     volume.legend()
 
     shares = pd.crosstab(quotes["workflow_type"], quotes["status"], normalize="index")[list(STATUS_COLOURS)]
@@ -350,7 +356,7 @@ def eda_quotes(quotes: pd.DataFrame):
     amount.legend()
 
     answered = quotes[quotes["decided_at"].notna()]
-    days = np.arange(0, 21, 1)
+    days = np.arange(0, 22, 1)
     for status in ("accepted", "declined"):
         reply.hist(
             answered.loc[answered["status"] == status, "days_to_decision"].clip(upper=20),
@@ -361,7 +367,10 @@ def eda_quotes(quotes: pd.DataFrame):
             color=STATUS_COLOURS[status],
             label=status,
         )
-    reply.set(title="Days from sending to reply (expired quotes never reply)", xlabel="days", ylabel="share")
+    reply.set(
+        title="Days from sending to reply (expired quotes never reply)", xlabel="days", ylabel="share", xlim=(0, 21)
+    )
+    reply.set_xticks([0.5, 5.5, 10.5, 15.5, 20.5], ["0", "5", "10", "15", "20+"])
     reply.legend()
     return _done(fig)
 
@@ -392,7 +401,9 @@ def eda_waiting(waiting: pd.Series):
     ax.bar(counts.index, counts.values, color=style.HIGHLIGHT, width=0.7)
     ax.set_xticks(counts.index, [str(i) if i < 10 else "10+" for i in counts.index])
     ax.set(
-        title="Quotes waiting per business, each morning (Sep to Dec 2024)", xlabel="quotes waiting", ylabel="mornings"
+        title="Quotes waiting per business, each morning (Sep to Dec 2024)",
+        xlabel="quotes waiting (business-mornings with at least one)",
+        ylabel="business-mornings",
     )
     ax.grid(axis="x", visible=False)
     return _done(fig)
@@ -402,7 +413,9 @@ def chance_check(predictions: pd.DataFrame):
     """After scoring: how the chances are spread, and whether each band of chances came true."""
     fig, (spread, check) = plt.subplots(1, 2, figsize=(12, 4))
     spread.hist(predictions["p_now"], bins=40, color=style.HIGHLIGHT)
-    spread.set(title="Chances given, every quote-morning", xlabel="chance of a yes", ylabel="quote-mornings")
+    spread.set(
+        title="Chances given, every quote-morning", xlabel="chance of a yes", ylabel="quote-mornings", xlim=(0, 1)
+    )
     _percent(spread, "x")
 
     bands = predictions.assign(band=pd.qcut(predictions["p_now"], 12, duplicates="drop"))
@@ -443,6 +456,7 @@ def silence_by_customer(model, workflow: str = "recurring", hours: float = 4.0):
         xlabel="days with no reply",
         ylabel="chance of a yes",
         ylim=(0, 0.9),
+        xlim=(0, 29),
     )
     ax.legend(title="customer", alignment="left")
     return _done(fig)
