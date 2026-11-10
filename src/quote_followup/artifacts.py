@@ -61,3 +61,19 @@ def load(path: Path) -> tuple[FollowUpModel, pd.Timestamp]:
     with open(path, "rb") as handle:
         stored = pickle.load(handle)
     return stored["model"], stored["as_of"]
+
+
+def scorecard(model: FollowUpModel) -> pd.DataFrame:
+    """The points each fact adds, in plain words: towards a yes, and towards saying no out loud."""
+    from .board import CHANNEL, WORK
+
+    names = {f"workflow_type_{k}": v for k, v in WORK.items()}
+    names |= {f"customer_channel_{k}": v for k, v in CHANNEL.items()}
+    names["log_hours_to_send"] = "each step slower in sending the quote"
+    table = pd.DataFrame(
+        {
+            "points towards a yes": _weights(model.propensity),
+            "points towards saying no out loud": _weights(model.decline_share),
+        }
+    )
+    return table.rename(index=names).rename_axis("fact")

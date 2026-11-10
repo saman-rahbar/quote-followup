@@ -262,3 +262,187 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# ---------------------------------------------------------------------------------------------
+# Exploratory charts for the notebooks. Each returns a closed figure, so a notebook shows it once
+# as the cell's result whatever matplotlib backend is active.
+
+STATUS_COLOURS = {"accepted": style.WON, "declined": "#ec835a", "expired": "#fab219", "open": style.MUTED}
+
+
+def _done(fig):
+    fig.tight_layout()
+    plt.close(fig)
+    return fig
+
+
+def _percent(ax, axis: str = "y") -> None:
+    getattr(ax, f"{axis}axis").set_major_formatter(lambda v, _: f"{v:.0%}")
+
+
+def eda_missing(data_dir: Path):
+    """Share of missing values in every column that has any, across all ten tables."""
+    from quote_followup import audit
+
+    raw = audit.read_raw(data_dir)
+    gaps = pd.Series(
+        {f"{t}.{c}": raw[t][c].isna().mean() for t in audit.TABLES for c in raw[t].columns if raw[t][c].isna().any()}
+    ).sort_values()
+    fig, ax = plt.subplots(figsize=(9, 0.3 * len(gaps) + 1.2))
+    ax.barh(gaps.index, gaps.values, color=style.HIGHLIGHT, height=0.6)
+    for y, value in enumerate(gaps.values):
+        ax.annotate(f"{value:.0%}", (value, y), xytext=(4, 0), textcoords="offset points", va="center", fontsize=8.5)
+    _percent(ax, "x")
+    ax.set_xlim(0, 1.05)
+    ax.grid(axis="y", visible=False)
+    ax.set_title("Missing values by column (columns with any)")
+    return _done(fig)
+
+
+def eda_transform(quotes: pd.DataFrame):
+    """Hours from writing to sending, before and after the log transform the model uses."""
+    fig, (raw, logged) = plt.subplots(1, 2, figsize=(11, 3.6))
+    raw.hist(quotes["hours_to_send"], bins=60, color=style.MUTED)
+    raw.set(title="Hours to send, as recorded", xlabel="hours", ylabel="quotes")
+    logged.hist(quotes["log_hours_to_send"], bins=60, color=style.HIGHLIGHT)
+    logged.set(title="After log(1 + hours)", xlabel="log(1 + hours)")
+    raw.text(0.95, 0.9, f"skew {quotes['hours_to_send'].skew():.1f}", transform=raw.transAxes, ha="right")
+    logged.text(0.95, 0.9, f"skew {quotes['log_hours_to_send'].skew():.1f}", transform=logged.transAxes, ha="right")
+    return _done(fig)
+
+
+def eda_quotes(quotes: pd.DataFrame):
+    """Quotes at a glance: volume over time, how they end, how big they are, how fast replies come."""
+    fig, axes = plt.subplots(2, 2, figsize=(13, 8))
+    volume, mix, amount, reply = axes.ravel()
+
+    monthly = quotes.groupby([quotes["sent_at"].dt.to_period("M"), "workflow_type"]).size().unstack()
+    for workflow, colour in style.WORKFLOW_COLOURS.items():
+        volume.plot(
+            monthly.index.to_timestamp(),
+            monthly[workflow],
+            "-o",
+            ms=4,
+            color=colour,
+            label=style.WORKFLOW_NAMES[workflow],
+        )
+    volume.set(title="Quotes sent per month", ylabel="quotes")
+    volume.legend()
+
+    shares = pd.crosstab(quotes["workflow_type"], quotes["status"], normalize="index")[list(STATUS_COLOURS)]
+    left = np.zeros(len(shares))
+    labels = [style.WORKFLOW_NAMES[w] for w in shares.index]
+    for status, colour in STATUS_COLOURS.items():
+        mix.barh(labels, shares[status], left=left, color=colour, label=status, height=0.6)
+        left += shares[status].to_numpy()
+    _percent(mix, "x")
+    mix.set(title="How quotes end", xlim=(0, 1))
+    mix.legend(ncol=4, loc="lower center", bbox_to_anchor=(0.5, -0.32))
+    mix.grid(axis="y", visible=False)
+
+    bins = np.logspace(np.log10(quotes["quoted_amount_usd"].min()), np.log10(quotes["quoted_amount_usd"].max()), 50)
+    for workflow, colour in style.WORKFLOW_COLOURS.items():
+        values = quotes.loc[quotes["workflow_type"] == workflow, "quoted_amount_usd"]
+        amount.hist(values, bins=bins, histtype="step", lw=2, color=colour, label=style.WORKFLOW_NAMES[workflow])
+    amount.set(xscale="log", title="Quote amount (log scale)", ylabel="quotes")
+    amount.xaxis.set_major_formatter(lambda v, _: f"${v:,.0f}")
+    amount.legend()
+
+    answered = quotes[quotes["decided_at"].notna()]
+    days = np.arange(0, 21, 1)
+    for status in ("accepted", "declined"):
+        reply.hist(
+            answered.loc[answered["status"] == status, "days_to_decision"].clip(upper=20),
+            bins=days,
+            histtype="step",
+            lw=2,
+            density=True,
+            color=STATUS_COLOURS[status],
+            label=status,
+        )
+    reply.set(title="Days from sending to reply (expired quotes never reply)", xlabel="days", ylabel="share")
+    reply.legend()
+    return _done(fig)
+
+
+def eda_acceptance(quotes: pd.DataFrame):
+    """Acceptance rate for each customer source and type of work."""
+    from quote_followup.board import CHANNEL
+
+    known = quotes[quotes["won"].notna()]
+    rates = known.pivot_table(index="customer_channel", columns="workflow_type", values="won")
+    rates = rates.loc[rates.mean(axis=1).sort_values().index, list(style.WORKFLOW_COLOURS)]
+    fig, ax = plt.subplots(figsize=(7.5, 4))
+    image = ax.imshow(rates.to_numpy(), cmap="Blues", vmin=0.3, vmax=0.95, aspect="auto")
+    for (i, j), value in np.ndenumerate(rates.to_numpy()):
+        ax.text(j, i, f"{value:.0%}", ha="center", va="center", color="white" if value > 0.7 else style.INK)
+    ax.set_xticks(range(rates.shape[1]), [style.WORKFLOW_NAMES[w] for w in rates.columns])
+    ax.set_yticks(range(rates.shape[0]), [CHANNEL[c] for c in rates.index])
+    ax.grid(False)
+    ax.set_title("Share of quotes accepted")
+    fig.colorbar(image, ax=ax, format=lambda v, _: f"{v:.0%}", shrink=0.8)
+    return _done(fig)
+
+
+def eda_waiting(waiting: pd.Series):
+    """How many quotes a business had waiting, across every business-morning with at least one."""
+    counts = waiting.clip(upper=10).value_counts().sort_index()
+    fig, ax = plt.subplots(figsize=(7.5, 3.4))
+    ax.bar(counts.index, counts.values, color=style.HIGHLIGHT, width=0.7)
+    ax.set_xticks(counts.index, [str(i) if i < 10 else "10+" for i in counts.index])
+    ax.set(
+        title="Quotes waiting per business, each morning (Sep to Dec 2024)", xlabel="quotes waiting", ylabel="mornings"
+    )
+    ax.grid(axis="x", visible=False)
+    return _done(fig)
+
+
+def chance_check(predictions: pd.DataFrame):
+    """After scoring: how the chances are spread, and whether each band of chances came true."""
+    fig, (spread, check) = plt.subplots(1, 2, figsize=(12, 4))
+    spread.hist(predictions["p_now"], bins=40, color=style.HIGHLIGHT)
+    spread.set(title="Chances given, every quote-morning", xlabel="chance of a yes", ylabel="quote-mornings")
+    _percent(spread, "x")
+
+    bands = predictions.assign(band=pd.qcut(predictions["p_now"], 12, duplicates="drop"))
+    bands = bands.groupby("band", observed=True).agg(given=("p_now", "mean"), came_true=("won", "mean"))
+    check.plot([0, 1], [0, 1], color=style.AXIS, lw=1)
+    check.plot(bands["given"], bands["came_true"], "-o", color=style.HIGHLIGHT)
+    check.set(xlim=(0, 0.85), ylim=(0, 0.85), title="Chance given vs share that said yes", xlabel="chance given")
+    check.set_ylabel("share that said yes")
+    _percent(check, "x")
+    _percent(check, "y")
+    return _done(fig)
+
+
+def silence_by_customer(model, workflow: str = "recurring", hours: float = 4.0):
+    """How the chance falls with each quiet day, for one type of work, by how the customer found the business."""
+    from scipy.special import expit
+
+    from quote_followup.board import CHANNEL
+
+    ages = np.linspace(0, 29, 117)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    colours = ["#2a78d6", "#eb6834", "#1baf7a", "#6250d6", "#898781"]
+    for channel, colour in zip(CHANNEL, colours, strict=True):
+        frame = pd.DataFrame(
+            {
+                "workflow_type": workflow,
+                "customer_channel": channel,
+                "log_hours_to_send": np.log1p(hours),
+                "age_days": ages,
+            }
+        )
+        q = model.decline_share.probability(frame)
+        chance = expit(model.propensity.log_odds(frame) + model.timing.log_odds_shift(frame, q))
+        ax.plot(ages, chance, color=colour, label=CHANNEL[channel])
+    _percent(ax)
+    ax.set(
+        title=f"{style.WORKFLOW_NAMES[workflow]}, quote sent within {hours:.0f} hours",
+        xlabel="days with no reply",
+        ylabel="chance of a yes",
+        ylim=(0, 0.9),
+    )
+    ax.legend(title="customer", alignment="left")
+    return _done(fig)

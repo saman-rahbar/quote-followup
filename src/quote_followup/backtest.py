@@ -361,3 +361,15 @@ PLAIN = {
 def for_people(table: pd.DataFrame) -> pd.DataFrame:
     """The same table with plain-language labels, for reading rather than for files."""
     return table.rename(columns=PLAIN, index=PLAIN).replace({"metric": PLAIN, "measure": PLAIN})
+
+
+def strict_lead(summary: pd.DataFrame, rivals: list[str], k: int = 1) -> pd.DataFrame:
+    """Our lead in dollars won over each rival, with the range widened for comparing many at once."""
+    rows = summary[summary["k"] == k].set_index("scorer").loc[rivals]
+    return pd.DataFrame(
+        {
+            "our lead": -rows["dollar_capture_gap"],
+            "low (strict)": -rows["dollar_capture_gap_hi_adj"],
+            "high (strict)": -rows["dollar_capture_gap_lo_adj"],
+        }
+    ).rename_axis("compared with")

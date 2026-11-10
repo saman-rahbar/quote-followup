@@ -270,3 +270,97 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def other_patterns(data_dir: Path, quotes: pd.DataFrame) -> pd.DataFrame:
+    """Leads for future work, noticed while exploring but not followed up."""
+    jobs = read_table(
+        data_dir / "jobs.csv",
+        ["job_id", "quote_id", "status", "planned_revenue_usd"],
+        numbers={"planned_revenue_usd": float},
+    )
+    invoices = read_table(
+        data_dir / "invoices.csv",
+        ["invoice_id", "job_id", "status", "balance_usd"],
+        numbers={"balance_usd": float},
+    )
+    payments = read_table(
+        data_dir / "payments.csv", ["invoice_id", "payment_status", "payment_method", "is_jobber_payment"]
+    )
+    visits = read_table(data_dir / "visits.csv", ["status", "reschedule_count"], numbers={"reschedule_count": int})
+    providers = read_table(
+        data_dir / "service_providers.csv", ["sp_id", "subscription_end_at"], timestamps=("subscription_end_at",)
+    )
+    events = read_table(data_dir / "product_events.csv", ["sp_id", "event_at"], timestamps=("event_at",))
+
+    accepted = quotes[quotes["status"] == "accepted"]
+    no_job = accepted[~accepted["quote_id"].isin(jobs["quote_id"])]
+    done = jobs[jobs["status"] == "completed"]
+    unbilled = done[~done["job_id"].isin(invoices["job_id"])]
+    overdue = invoices[invoices["status"] == "overdue"]
+    jpay = payments[payments["is_jobber_payment"] == "True"]
+    fail_rate = jpay.groupby("payment_method")["payment_status"].apply(lambda s: s.eq("failed").mean())
+    failed = payments[payments["payment_status"] == "failed"]
+    settled = failed["invoice_id"].isin(payments.loc[payments["payment_status"] == "succeeded", "invoice_id"])
+    finished = visits[visits["status"] != "scheduled"]
+    cancelled = finished.groupby(finished["reschedule_count"].clip(upper=3))["status"].apply(
+        lambda s: s.eq("cancelled").mean()
+    )
+    sent = quotes.groupby(quotes["sent_at"].dt.to_period("M")).size()
+    left = events.merge(providers.dropna(), on="sp_id")
+    after = left["event_at"] > left["subscription_end_at"]
+    declined = quotes[quotes["status"] == "declined"]
+    reasons = declined["decline_reason"].value_counts(normalize=True)
+    unpaid = (~overdue["invoice_id"].isin(payments["invoice_id"])).sum()
+
+    rows = [
+        (
+            "accepted quotes that never became a job",
+            f"{len(no_job):,} (${no_job['quoted_amount_usd'].sum() / 1e6:.1f}M)",
+        ),
+        (
+            "completed jobs never invoiced",
+            f"{len(unbilled):,} (${unbilled['planned_revenue_usd'].sum() / 1e6:.1f}M planned)",
+        ),
+        (
+            "overdue invoices with no payment at all",
+            f"{unpaid:,} of {len(overdue):,} (${overdue['balance_usd'].sum() / 1e6:.1f}M)",
+        ),
+        ("failed payments that went through Jobber Payments", f"{(failed['is_jobber_payment'] == 'True').mean():.0%}"),
+        (
+            "Jobber Payments failure rate, bank transfer vs card",
+            f"{fail_rate['bank_transfer']:.0%} vs {fail_rate['card']:.0%}",
+        ),
+        ("failed payments whose invoice was paid later", f"{settled.mean():.0%}"),
+        (
+            "visits cancelled: overall, after 3+ reschedules",
+            f"{finished['status'].eq('cancelled').mean():.0%}, {cancelled[3]:.0%}",
+        ),
+        ("quotes sent: January vs December 2024", f"{sent.iloc[0]:,} vs {sent.iloc[-1]:,}"),
+        (
+            "cancelled businesses still active afterwards",
+            f"{left.loc[after, 'sp_id'].nunique()} of {providers['subscription_end_at'].notna().sum()}",
+        ),
+        (
+            "declines by reason (each), and with no reason",
+            f"{reasons.min():.0%} to {reasons.max():.0%}, {declined['decline_reason'].isna().mean():.0%}",
+        ),
+    ]
+    return pd.DataFrame(rows, columns=["pattern", "number"]).set_index("pattern")
+
+
+def preprocessing_steps(quotes: pd.DataFrame, as_of: str = "2024-09-01", horizon_days: int = 45) -> pd.DataFrame:
+    """From raw rows to what the model learns from and scores, with the row count after each step."""
+    from quote_followup.timeline import settled_quotes
+
+    known = quotes[quotes["won"].notna()]
+    settled = settled_quotes(quotes, pd.Timestamp(as_of), horizon_days)
+    steps = [
+        ("read quotes.csv as text, parse dates and amounts strictly", len(quotes)),
+        ("join customer and business on (sp_id, customer_id); all match", len(quotes)),
+        ("derive won, hours_to_send, log(1 + hours), send_speed, days_to_decision", len(quotes)),
+        ("drop the 1,444 stale 'open' quotes from learning and scoring", len(known)),
+        (f"learning set on {as_of}: sent {horizon_days}+ days earlier, ending on record", len(settled)),
+        ("in the model: one-hot encode work and source, standardise log hours", len(settled)),
+    ]
+    return pd.DataFrame(steps, columns=["step", "rows"]).set_index("step")

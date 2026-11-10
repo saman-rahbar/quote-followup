@@ -8,14 +8,14 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # PY and DATA_ZIP tell the Makefile which Python to use and where the supplied data.zip is mounted.
-# HOME and MPLCONFIGDIR point at /tmp so the services can run as your user, not as root.
+# HOME and MPLCONFIGDIR point at /tmp so the services can run as your user, not as root. Matplotlib
+# picks its own backend: inline charts in JupyterLab, image files in the pipeline.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PY=python \
     DATA_ZIP=/input/data.zip \
-    MPLBACKEND=Agg \
     HOME=/tmp \
     MPLCONFIGDIR=/tmp/matplotlib
 
