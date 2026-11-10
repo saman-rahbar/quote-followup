@@ -1,0 +1,8 @@
+first,second,metric,k,gap,lo,hi
+Our list: chance x amount,Days without a reply x amount,dollar_capture,1,-0.002067374199322791,-0.017901615414916323,0.011853327363063545
+Our list: chance x amount,Days without a reply x amount,dollar_capture,3,-0.002720653700442721,-0.015839890494969696,0.008703380492116516
+Our list: chance x amount,Newest quote first,dollar_capture,1,0.16892869862053672,0.13448683335287515,0.20158072122612292
+Our list: chance x amount,Biggest quote first,dollar_capture,1,0.1642715655279139,0.12897022843897213,0.20006645428909833
+Our list: chance x amount,Newest quote first,hit_rate,1,-0.0659103458661714,-0.07653807116264028,-0.05486476650329221
+"Our list, by chance only",Newest quote first,hit_rate,1,0.01802118367551825,0.01181726335898895,0.023764761906782932
+"Our list, by chance only",Newest quote first,hit_rate,3,0.0019534302234723855,-0.0006293872795190252,0.004589018249157342

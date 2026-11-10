@@ -1,0 +1,25 @@
+Synthetic Service Company 0267 (SP0267), morning of Thu 12 Dec 2024
+Learned from 17,026 past quotes with a known outcome, all sent before 28 Oct 2024.
+
+Call today (top 3):
+  quote     work             amount   days waiting  chance of yes  worth today  chance halves in  why
+  QU013118  emergency job    $1,738   1.8           84%            $1,452       8.5 days          helps: emergency job, referred by someone; hurts: no reply for 1.8 days
+  QU013170  one-off project  $2,769   0.8           45%            $1,251       4.5 days          hurts: one-off project, took 2.1 days to send, found you on their own
+  QU013126  one-off project  $13,828  19.7          3%             $365         6.0 days          hurts: no reply for 19.7 days, one-off project, came from a paid ad
+
+Can wait:
+  quote     work               amount  days waiting  chance of yes  worth today  chance halves in  why
+  QU013112  one-off project    $4,021  15.6          6%             $227         6.5 days          helps: sent within 5 hours; hurts: no reply for 15.6 days, one-off project
+  QU013138  recurring service  $233    3.8           66%            $153         5.0 days          helps: referred by someone, sent within 3 hours; hurts: no reply for 3.8 days
+  QU013158  recurring service  $168    0.7           72%            $121         5.5 days          helps: referred by someone, recurring service; hurts: took 2.2 days to send
+
+What actually happened (the model could not see this):
+quote_id   status          decided_at
+QU013118 accepted 2024-12-12 13:50:00
+QU013170 accepted 2024-12-13 20:53:00
+QU013126  expired                 NaT
+QU013112  expired                 NaT
+QU013138 declined 2024-12-12 14:40:00
+QU013158  expired                 NaT
+
+Full board written to outputs/worked_example_SP0267_2024-12-12.csv

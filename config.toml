@@ -1,0 +1,30 @@
+# Every number that shapes a result lives here, so a run is fully described by this file and the data.
+
+[data]
+dir = "data"
+
+[model]
+# Chosen in notebooks/04 on folds that close before the backtest: industry, amount, line items,
+# customer type and SP or customer history added nothing once these three were in. The same
+# inputs feed both the win model and the decline-share model.
+categorical = ["workflow_type", "customer_channel"]
+numeric = ["log_hours_to_send"]
+regularization_c = 1.0
+# Train only on quotes sent at least this long before the scoring date. Quotes expire after
+# 30 days and almost every decision lands inside 45, so their outcomes are settled and recent
+# fast "yes" answers can't crowd out the slow "no" ones still pending.
+label_horizon_days = 45
+# Strata for the answer-time curves, coarsest first. Thin strata back off to coarser ones.
+timing_segments = ["workflow_type"]
+timing_min_quotes = 200
+
+[followup]
+# How many quotes an owner can realistically chase in a morning.
+daily_capacity = 3
+morning_hour = 8
+
+[backtest]
+start = "2024-09-01"
+end = "2024-12-20"
+bootstrap_draws = 1000
+seed = 7

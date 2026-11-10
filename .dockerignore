@@ -1,0 +1,10 @@
+# The data arrives as data.zip at run time, and the local environment is rebuilt inside the image.
+.venv/
+data/
+.git/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+notebooks/.ipynb_checkpoints/
+outputs/backtest_predictions.csv
+models/

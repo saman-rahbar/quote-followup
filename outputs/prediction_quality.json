@@ -1,0 +1,17 @@
+{
+  "quote_mornings": 75406,
+  "quotes": 9522,
+  "auc_pooled": 0.8703485274523742,
+  "auc_pooled_age_only": 0.8489769245652753,
+  "auc_first_morning": 0.6913591529823596,
+  "auc_within_age_band_min": 0.6645585466172682,
+  "auc_within_age_band_max": 0.6933782501482606,
+  "log_loss": 0.3742073896427071,
+  "brier": 0.12090966220091562,
+  "expected_calibration_error": 0.007153000039656431,
+  "subgroup_cells": 101,
+  "subgroup_z_threshold": 3.4834208364606982,
+  "subgroup_cells_beyond": 3,
+  "subgroup_max_abs_z": 4.492473203723089,
+  "subgroup_max_abs_gap": 0.24313960050075611
+}

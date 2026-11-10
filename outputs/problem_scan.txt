@@ -1,0 +1,15 @@
+           outcome  overall              driver  lowest  highest  groups
+invoice never paid    0.238       customer_type   0.230    0.259   3.000
+invoice never paid    0.238 acquisition_channel   0.228    0.245   5.000
+invoice never paid    0.238       workflow_type   0.233    0.241   3.000
+invoice never paid    0.238            industry   0.211    0.247  10.000
+invoice never paid    0.238           plan_tier   0.234    0.239   3.000
+invoice never paid    0.238     amount_quintile   0.227    0.252   5.000
+invoice never paid    0.238          terms_days   0.228    0.251   4.000
+   visit cancelled    0.097       workflow_type   0.073    0.102   3.000
+   visit cancelled    0.097            industry   0.081    0.112  10.000
+   visit cancelled    0.097    reschedule_count   0.000    0.229   6.000
+    quote accepted    0.673       workflow_type   0.550    0.790   3.000
+    quote accepted    0.673 acquisition_channel   0.584    0.761   5.000
+    quote accepted    0.673       hours_to_send   0.614    0.725   4.000
+        SP churned    0.060       30 of 500 SPs     NaN      NaN     NaN

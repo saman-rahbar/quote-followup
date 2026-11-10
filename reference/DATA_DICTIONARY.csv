@@ -1,0 +1,128 @@
+table,column,data_type,nullable,key,description,provenance
+service_providers,sp_id,string,False,PK,Synthetic service-provider account identifier,synthetic_assumption
+service_providers,synthetic_business_name,string,False,,Clearly synthetic display label,synthetic_assumption
+service_providers,industry,category,False,,Primary home-service industry,synthetic_assumption
+service_providers,primary_workflow,category,False,,Most common operating model,synthetic_assumption
+service_providers,country,category,False,,Synthetic market country,synthetic_assumption
+service_providers,market_region,string,False,,Fictional regional bucket,synthetic_assumption
+service_providers,signup_at,timestamp,False,,Account creation timestamp,synthetic_assumption
+service_providers,subscription_start_at,timestamp,False,,First paid subscription date,synthetic_assumption
+service_providers,subscription_end_at,timestamp,True,,End of paid subscription when churned,synthetic_assumption
+service_providers,plan_tier,category,False,,Synthetic plan tier,synthetic_assumption
+service_providers,team_size,integer,False,,Simulated active team size,synthetic_assumption
+service_providers,years_in_business_bucket,category,False,,Business-maturity bucket,synthetic_assumption
+service_providers,acquisition_channel,category,False,,How the SP was acquired,synthetic_assumption
+service_providers,jpay_enabled_at,timestamp,True,,Date simulated Jobber Payments enablement began,synthetic_assumption
+service_providers,account_reportable_ind,boolean,False,,Synthetic reportability flag,synthetic_assumption
+customers,customer_id,string,False,PK,SP-scoped synthetic customer identifier,synthetic_assumption
+customers,sp_id,string,False,FK,Owning SP,synthetic_assumption
+customers,customer_type,category,False,,"Residential, commercial, or property manager",synthetic_assumption
+customers,acquisition_channel,category,False,,Customer acquisition source,synthetic_assumption
+customers,created_at,timestamp,False,,Customer record creation,synthetic_assumption
+customers,preferred_contact_method,category,True,,Preferred contact channel,synthetic_assumption
+customers,marketing_opt_in,boolean,False,,Synthetic consent flag,synthetic_assumption
+customers,email_available,boolean,False,,Whether contact email is present; no address supplied,synthetic_assumption
+customers,phone_available,boolean,False,,Whether contact phone is present; no number supplied,synthetic_assumption
+properties,property_id,string,False,PK,Synthetic service location,synthetic_assumption
+properties,customer_id,string,False,FK,Owning customer,synthetic_assumption
+properties,sp_id,string,False,FK,Owning SP,synthetic_assumption
+properties,property_type,category,False,,Service-location type,synthetic_assumption
+properties,market_zone,string,False,,Fictional geography bucket,synthetic_assumption
+properties,distance_km_from_sp,decimal,False,,Simulated route distance,synthetic_assumption
+properties,square_feet,integer,True,,Approximate size with realistic missingness,synthetic_assumption
+properties,created_at,timestamp,False,,Property record creation,synthetic_assumption
+quotes,quote_id,string,False,PK,Synthetic quote identifier,synthetic_assumption
+quotes,sp_id,string,False,FK,Owning SP,synthetic_assumption
+quotes,customer_id,string,False,FK,Customer,synthetic_assumption
+quotes,property_id,string,False,FK,Property,synthetic_assumption
+quotes,workflow_type,category,False,,"Recurring, project, or emergency",synthetic_assumption
+quotes,created_at,timestamp,False,,Quote creation,synthetic_assumption
+quotes,sent_at,timestamp,False,,Quote sent,synthetic_assumption
+quotes,expires_at,timestamp,False,,Quote expiration,synthetic_assumption
+quotes,decided_at,timestamp,True,,Accepted or declined timestamp,synthetic_assumption
+quotes,status,category,False,,"accepted, declined, expired, or open",synthetic_assumption
+quotes,quoted_amount_usd,decimal,False,,Quoted total in synthetic USD,synthetic_assumption
+quotes,line_item_count,integer,False,,Number of quote lines,synthetic_assumption
+quotes,decline_reason,category,True,,Optional structured decline reason,synthetic_assumption
+jobs,job_id,string,False,PK,Synthetic job identifier,synthetic_assumption
+jobs,sp_id,string,False,FK,Owning SP,synthetic_assumption
+jobs,customer_id,string,False,FK,Customer,synthetic_assumption
+jobs,property_id,string,False,FK,Property,synthetic_assumption
+jobs,quote_id,string,True,FK,Accepted source quote when converted,synthetic_assumption
+jobs,workflow_type,category,False,,Operating model,synthetic_assumption
+jobs,created_at,timestamp,False,,Job creation,synthetic_assumption
+jobs,scheduled_start_at,timestamp,False,,Initial planned start,synthetic_assumption
+jobs,status,category,False,,"active, completed, or cancelled",synthetic_assumption
+jobs,completed_at,timestamp,True,,Job completion,synthetic_assumption
+jobs,planned_revenue_usd,decimal,False,,Simulated expected value,synthetic_assumption
+jobs,priority,category,False,,"Standard, high, or urgent",synthetic_assumption
+jobs,created_from,category,False,,Source workflow,synthetic_assumption
+visits,visit_id,string,False,PK,Synthetic visit identifier,synthetic_assumption
+visits,job_id,string,False,FK,Parent job,synthetic_assumption
+visits,sp_id,string,False,FK,Owning SP,synthetic_assumption
+visits,customer_id,string,False,FK,Customer,synthetic_assumption
+visits,property_id,string,False,FK,Property,synthetic_assumption
+visits,sequence_number,integer,False,,Visit order within job,synthetic_assumption
+visits,scheduled_start_at,timestamp,False,,Scheduled start,synthetic_assumption
+visits,actual_start_at,timestamp,True,,Observed start when completed,synthetic_assumption
+visits,actual_end_at,timestamp,True,,Observed end when completed,synthetic_assumption
+visits,status,category,False,,"completed, cancelled, or scheduled",synthetic_assumption
+visits,reschedule_count,integer,False,,Number of schedule changes,synthetic_assumption
+visits,cancelled_at,timestamp,True,,Cancellation timestamp,synthetic_assumption
+invoices,invoice_id,string,False,PK,Synthetic invoice identifier,synthetic_assumption
+invoices,job_id,string,False,FK,Parent job,synthetic_assumption
+invoices,sp_id,string,False,FK,Owning SP,synthetic_assumption
+invoices,customer_id,string,False,FK,Customer,synthetic_assumption
+invoices,property_id,string,False,FK,Property,synthetic_assumption
+invoices,issued_at,timestamp,False,,Invoice creation,synthetic_assumption
+invoices,sent_at,timestamp,True,,Invoice sent; null for drafts,synthetic_assumption
+invoices,due_at,timestamp,True,,Payment due,synthetic_assumption
+invoices,status,category,False,,"draft, void, sent, overdue, partially_paid, or paid",synthetic_assumption
+invoices,invoice_amount_usd,decimal,False,,Invoice total,synthetic_assumption
+invoices,paid_amount_usd,decimal,False,,Net captured amount after refunds,synthetic_assumption
+invoices,balance_usd,decimal,False,,Non-negative outstanding balance,synthetic_assumption
+invoices,billing_sequence,integer,False,,Invoice order per job,synthetic_assumption
+invoices,metric_reportable_ind,boolean,False,,Whether included in candidate metrics,synthetic_assumption
+payments,payment_id,string,False,PK,Synthetic transaction identifier,synthetic_assumption
+payments,invoice_id,string,False,FK,Parent invoice,synthetic_assumption
+payments,sp_id,string,False,FK,Owning SP,synthetic_assumption
+payments,customer_id,string,False,FK,Customer,synthetic_assumption
+payments,paid_at,timestamp,False,,Transaction timestamp,synthetic_assumption
+payments,payment_status,category,False,,"succeeded, failed, or refunded",synthetic_assumption
+payments,payment_method,category,False,,Structured payment method,synthetic_assumption
+payments,attempted_amount_usd,decimal,False,,Attempted absolute amount,synthetic_assumption
+payments,payment_amount_usd,decimal,False,,Captured signed amount; refunds negative and failures zero,synthetic_assumption
+payments,is_jobber_payment,boolean,False,,Whether transaction uses simulated Jobber Payments,synthetic_assumption
+payments,metric_reportable_ind,boolean,False,,Whether eligible for GPV,synthetic_assumption
+product_events,event_id,string,False,PK,Synthetic product-event identifier,synthetic_assumption
+product_events,sp_id,string,False,FK,Owning SP,synthetic_assumption
+product_events,event_at,timestamp,False,,Event time,synthetic_assumption
+product_events,event_name,category,False,,Structured product action,synthetic_assumption
+product_events,actor_type,category,False,,"team_member, system, or customer",synthetic_assumption
+product_events,platform,category,False,,"web, mobile, automation, or integration",synthetic_assumption
+product_events,session_id,string,True,,Synthetic session identifier with realistic missingness,synthetic_assumption
+product_events,entity_type,category,True,,Referenced object type,synthetic_assumption
+product_events,entity_id,string,True,FK,Referenced object identifier,synthetic_assumption
+daily_sp_metrics,sp_id,string,False,PK/FK,Service provider,synthetic_assumption
+daily_sp_metrics,reporting_date,date,False,PK,Daily reporting grain,synthetic_assumption
+daily_sp_metrics,new_customer_count,integer,False,,Customers created that day,synthetic_assumption
+daily_sp_metrics,quote_created_count,integer,False,,Quotes created,synthetic_assumption
+daily_sp_metrics,quote_sent_count,integer,False,,Quotes sent,synthetic_assumption
+daily_sp_metrics,quote_accepted_count,integer,False,,Quotes accepted,synthetic_assumption
+daily_sp_metrics,job_created_count,integer,False,,Jobs created,synthetic_assumption
+daily_sp_metrics,job_completed_count,integer,False,,Jobs completed,synthetic_assumption
+daily_sp_metrics,visit_scheduled_count,integer,False,,Visits scheduled for that day,synthetic_assumption
+daily_sp_metrics,visit_completed_count,integer,False,,Visits completed,synthetic_assumption
+daily_sp_metrics,visit_cancelled_count,integer,False,,Visits cancelled,synthetic_assumption
+daily_sp_metrics,product_event_count,integer,False,,Product events,synthetic_assumption
+daily_sp_metrics,invoice_count,integer,False,,"Sent, reportable invoices",synthetic_assumption
+daily_sp_metrics,gsv_usd,decimal,False,,Gross Service Volume: sent invoice amount in USD,hosted_definition
+daily_sp_metrics,payment_transaction_count,integer,False,,Succeeded and refunded transactions,synthetic_assumption
+daily_sp_metrics,jpay_transaction_count,integer,False,,Reportable simulated Jobber Payments transactions,synthetic_assumption
+daily_sp_metrics,gpv_usd,decimal,False,,Gross Payment Volume in USD including negative refunds,hosted_definition
+daily_sp_metrics,active_session_count,integer,False,,Distinct non-null product sessions,synthetic_assumption
+daily_sp_metrics,paying_ind,boolean,False,,Active paid subscription snapshot,hosted_definition
+daily_sp_metrics,mrr_usd,decimal,False,,Simulated subscription MRR snapshot,synthetic_assumption
+daily_sp_metrics,invoice_active_ind,boolean,False,,At least one sent invoice,hosted_definition
+daily_sp_metrics,jpay_active_ind,boolean,False,,At least one reportable JPay transaction,hosted_definition
+daily_sp_metrics,metric_reportable_ind,boolean,False,,Synthetic metric eligibility,synthetic_assumption

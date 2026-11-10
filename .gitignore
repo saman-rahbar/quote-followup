@@ -1,0 +1,11 @@
+.venv/
+data/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+
+# Rebuilt by `make backtest`; 8 MB, so not tracked.
+outputs/backtest_predictions.csv
+
+# Fitted models are rebuilt by `make model`; the readable JSON summary next to each one is kept.
+models/*.pkl

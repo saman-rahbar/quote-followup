@@ -1,0 +1,87 @@
+check,table,detail,ok
+matches zip,service_providers,sha256 3d8780b74fa7,True
+matches zip,customers,sha256 295457d2ff16,True
+matches zip,properties,sha256 4c3b0c7712d1,True
+matches zip,quotes,sha256 be6ec18c1363,True
+matches zip,jobs,sha256 ad9cb7156363,True
+matches zip,visits,sha256 c16e134d2f66,True
+matches zip,invoices,sha256 f04efed0d1d6,True
+matches zip,payments,sha256 1156f1ef2426,True
+matches zip,product_events,sha256 3fecb8ece32f,True
+matches zip,daily_sp_metrics,sha256 21eda8b87cd5,True
+row count,service_providers,500 rows,True
+row count,customers,"12,000 rows",True
+row count,properties,"15,000 rows",True
+row count,quotes,"25,000 rows",True
+row count,jobs,"20,000 rows",True
+row count,visits,"35,000 rows",True
+row count,invoices,"18,000 rows",True
+row count,payments,"15,000 rows",True
+row count,product_events,"100,000 rows",True
+row count,daily_sp_metrics,"180,000 rows",True
+columns,service_providers,15 columns,True
+types parse,service_providers,every value,True
+required present,service_providers,no gaps,True
+key unique,service_providers,sp_id,True
+columns,customers,9 columns,True
+types parse,customers,every value,True
+required present,customers,no gaps,True
+key unique,customers,customer_id,True
+columns,properties,8 columns,True
+types parse,properties,every value,True
+required present,properties,no gaps,True
+key unique,properties,property_id,True
+columns,quotes,13 columns,True
+types parse,quotes,every value,True
+required present,quotes,no gaps,True
+key unique,quotes,quote_id,True
+columns,jobs,13 columns,True
+types parse,jobs,every value,True
+required present,jobs,no gaps,True
+key unique,jobs,job_id,True
+columns,visits,12 columns,True
+types parse,visits,every value,True
+required present,visits,no gaps,True
+key unique,visits,visit_id,True
+columns,invoices,14 columns,True
+types parse,invoices,every value,True
+required present,invoices,no gaps,True
+key unique,invoices,invoice_id,True
+columns,payments,11 columns,True
+types parse,payments,every value,True
+required present,payments,no gaps,True
+key unique,payments,payment_id,True
+columns,product_events,9 columns,True
+types parse,product_events,every value,True
+required present,product_events,no gaps,True
+key unique,product_events,event_id,True
+columns,daily_sp_metrics,23 columns,True
+types parse,daily_sp_metrics,every value,True
+required present,daily_sp_metrics,no gaps,True
+key unique,daily_sp_metrics,sp_id+reporting_date,True
+links,customers,sp_id -> service_providers: 0 orphans,True
+links,properties,customer_id+sp_id -> customers: 0 orphans,True
+links,quotes,customer_id+sp_id -> customers: 0 orphans,True
+links,quotes,property_id+customer_id+sp_id -> properties: 0 orphans,True
+links,jobs,property_id+customer_id+sp_id -> properties: 0 orphans,True
+links,jobs,quote_id+customer_id+sp_id -> quotes: 0 orphans,True
+links,visits,job_id+customer_id+property_id+sp_id -> jobs: 0 orphans,True
+links,invoices,job_id+customer_id+property_id+sp_id -> jobs: 0 orphans,True
+links,payments,invoice_id+customer_id+sp_id -> invoices: 0 orphans,True
+links,product_events,sp_id -> service_providers: 0 orphans,True
+links,daily_sp_metrics,sp_id -> service_providers: 0 orphans,True
+links,product_events,quote events -> quotes: 0 orphans,True
+links,product_events,job events -> jobs: 0 orphans,True
+links,product_events,visit events -> visits: 0 orphans,True
+links,product_events,invoice events -> invoices: 0 orphans,True
+links,product_events,payment events -> payments: 0 orphans,True
+quote rule,quotes,created <= sent < expires: 0 break it,True
+quote rule,quotes,accepted or declined has decided_at: 0 break it,True
+quote rule,quotes,expired or open has no decided_at: 0 break it,True
+quote rule,quotes,decided after sent: 0 break it,True
+quote rule,quotes,decline reason only on declines: 0 break it,True
+quote rule,quotes,amount positive: 0 break it,True
+reconciles,daily_sp_metrics,"quote_created_count: 0 SP-days differ of 22,440",True
+reconciles,daily_sp_metrics,"quote_sent_count: 0 SP-days differ of 22,550",True
+reconciles,daily_sp_metrics,"quote_accepted_count: 0 SP-days differ of 14,799",True
+reconciles,product_events,quote_created events cover every quote: True; same timestamp: 100.0%,True

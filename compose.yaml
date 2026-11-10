@@ -1,0 +1,36 @@
+# Two services on one image.
+#
+#   docker compose up                    both: JupyterLab stays up, the pipeline runs once and exits
+#   docker compose up lab                JupyterLab only, at http://localhost:8888
+#   docker compose run --rm pipeline     rebuild every number, model, chart and notebook
+#
+# Both see this folder at /app, so notebooks, outputs, models and code edits are shared with your
+# machine. The supplied data.zip is read from the folder above this one; set DATA_ZIP to use another.
+
+x-app: &app
+  build: .
+  image: quote-followup:local
+  user: "${UID:-1000}:${GID:-1000}"
+  volumes:
+    - .:/app
+    - ${DATA_ZIP:-../data.zip}:/input/data.zip:ro
+
+services:
+  lab:
+    <<: *app
+    # Unpack the CSVs if they aren't there yet, then open JupyterLab on the notebooks folder at
+    # http://localhost:8888/lab?token=quotes. It only listens on this computer; set JUPYTER_TOKEN
+    # to choose your own token.
+    command: >
+      sh -c "python scripts/unpack_data.py /input/data.zip &&
+             jupyter lab --ip=0.0.0.0 --port=8888 --no-browser
+             --ServerApp.root_dir=/app
+             --ServerApp.default_url=/lab/tree/notebooks"
+    environment:
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:-quotes}
+    ports:
+      - "127.0.0.1:8888:8888"
+
+  pipeline:
+    <<: *app
+    command: make all

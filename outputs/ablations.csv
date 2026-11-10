@@ -1,0 +1,18 @@
+option,rows,auc,log_loss,question,groups_missed_beyond_luck,worst_miss_z,luck_threshold_z
+"type of work, customer source, sending speed (chosen)",5990,0.6387949662371852,0.6136510374098881,which facts,,,
+"+ industry, customer type, quote size, number of items",5990,0.6372621210809647,0.6153330343337645,which facts,,,
++ the business's past win rate,5990,0.6385700015526437,0.6136143249498894,which facts,,,
++ the customer's past win rate,5990,0.6355472181636561,0.6164122366670813,which facts,,,
++ sent on a weekend,5990,0.6386105351673764,0.6136197660313568,which facts,,,
+without type of work,5990,0.5811986982776398,0.6318766140924913,which facts,,,
+without customer source,5990,0.6234387219807485,0.6185043910999587,which facts,,,
+without sending speed (quote size instead),5990,0.6294873490778634,0.6164709537774619,which facts,,,
+gradient boosting with every fact,5990,0.5866731720307816,0.7086081012875735,which facts,,,
+one says-no-or-goes-quiet figure per type of work (first version),24151,0.7598951387096173,0.5717234356032933,using days without a reply,3.0,4.6545393899958265,3.410116796081223
+says-no-or-goes-quiet chance per customer (chosen),24151,0.7616018864841336,0.5704980591350031,using days without a reply,1.0,3.6614349714457988,3.410116796081223
+"  same, reply speed also learned by customer source",24151,0.7611952515252449,0.5710516362866624,using days without a reply,2.0,4.709163706263457,3.410116796081223
+"  same, reply speed also learned by sending speed",24151,0.7618540029047866,0.5704385814010076,using days without a reply,3.0,4.739280040615398,3.410116796081223
+"  same, with gradient boosting instead",24151,0.733568717511511,0.6137385470576414,using days without a reply,7.0,4.8449871031719125,3.410116796081223
+days waiting as one more fact,24151,0.759186682162047,0.5732538962982108,using days without a reply,4.0,4.177697174973525,3.410116796081223
+"days waiting as one more fact, gradient boosting",24151,0.7372347825946067,0.6256677478554031,using days without a reply,3.0,3.8464858075126984,3.410116796081223
+days waiting only,24151,0.7190365122767852,0.5920280352526205,using days without a reply,27.0,9.504867447995053,3.410116796081223

@@ -1,0 +1,58 @@
+{
+  "fitted as of": "2024-12-12 08:00:00",
+  "learned from quotes": 17026,
+  "facts used": [
+    "workflow_type",
+    "customer_channel",
+    "log_hours_to_send"
+  ],
+  "chance of a yes: typical quote (log odds)": 0.7601,
+  "chance of a yes: what each fact adds (log odds, standardised)": {
+    "workflow_type_emergency": 0.693,
+    "workflow_type_project": -0.448,
+    "workflow_type_recurring": 0.3003,
+    "customer_channel_marketplace": -0.3115,
+    "customer_channel_organic": -0.0514,
+    "customer_channel_paid_search": -0.0092,
+    "customer_channel_referral": 0.39,
+    "customer_channel_repeat_offline": 0.5275,
+    "log_hours_to_send": -0.2023
+  },
+  "says no out loud: what each fact adds (log odds, standardised)": {
+    "workflow_type_emergency": 0.7261,
+    "workflow_type_project": -0.805,
+    "workflow_type_recurring": 0.24,
+    "customer_channel_marketplace": -0.5882,
+    "customer_channel_organic": -0.2287,
+    "customer_channel_paid_search": -0.2559,
+    "customer_channel_referral": 0.476,
+    "customer_channel_repeat_offline": 0.7579,
+    "log_hours_to_send": -0.2101
+  },
+  "reply speeds": {
+    "all quotes": {
+      "yeses learned from": 11417,
+      "median days until a yes": 1.38,
+      "nos learned from": 2661,
+      "median days until a no": 2.12
+    },
+    "emergency": {
+      "yeses learned from": 2573,
+      "median days until a yes": 1.29,
+      "nos learned from": 466,
+      "median days until a no": 1.29
+    },
+    "project": {
+      "yeses learned from": 3417,
+      "median days until a yes": 3.04,
+      "nos learned from": 961,
+      "median days until a no": 3.12
+    },
+    "recurring": {
+      "yeses learned from": 5427,
+      "median days until a yes": 1.29,
+      "nos learned from": 1234,
+      "median days until a no": 1.33
+    }
+  }
+}
