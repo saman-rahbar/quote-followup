@@ -9,3 +9,6 @@ outputs/backtest_predictions.csv
 
 # Fitted models are rebuilt by `make model`; the readable JSON summary next to each one is kept.
 models/*.pkl
+
+# JupyterLab autosaves
+.ipynb_checkpoints/
