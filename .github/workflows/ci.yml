@@ -1,0 +1,52 @@
+# Runs on every push to main and every pull request.
+# The supplied data.zip is not in the repo, so CI checks the code itself: style, the automated tests
+# (which build their own small synthetic data), and that the Docker image builds and passes them too.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    name: Lint and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install the exact versions in requirements.lock
+        run: |
+          uv venv --python 3.12
+          uv pip install -r requirements.lock
+          uv pip install -e . --no-deps
+
+      - name: Lint
+        run: .venv/bin/ruff check .
+
+      - name: Check formatting
+        run: .venv/bin/ruff format --check .
+
+      - name: Run the tests
+        run: .venv/bin/python -m pytest
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t quote-followup:ci .
+
+      - name: Run the tests inside it
+        run: docker run --rm quote-followup:ci python -m pytest -q

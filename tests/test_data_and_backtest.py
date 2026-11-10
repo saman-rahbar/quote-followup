@@ -21,12 +21,14 @@ def test_a_customer_filed_under_another_business_stops_the_load(tmp_path):
 
 
 def _morning() -> pd.DataFrame:
-    return pd.DataFrame({
-        "sp_id": ["A"] * 4 + ["B"] * 2,
-        "quote_id": list("abcdef"),
-        "won": [1, 0, 1, 0, 0, 1],
-        "quoted_amount_usd": [100.0, 900.0, 300.0, 50.0, 10.0, 20.0],
-    })
+    return pd.DataFrame(
+        {
+            "sp_id": ["A"] * 4 + ["B"] * 2,
+            "quote_id": list("abcdef"),
+            "won": [1, 0, 1, 0, 0, 1],
+            "quoted_amount_usd": [100.0, 900.0, 300.0, 50.0, 10.0, 20.0],
+        }
+    )
 
 
 def test_top_k_scores_the_picks_against_the_best_possible_picks():
@@ -45,10 +47,12 @@ def test_a_business_with_no_more_quotes_than_capacity_is_skipped():
 
 def test_summary_gaps_are_zero_for_the_reference_and_paired_for_the_rest():
     morning = _morning()
-    lists = pd.concat([
-        backtest._top_k(morning, morning["won"] * morning["quoted_amount_usd"], 1).assign(scorer="oracle", k=1),
-        backtest._top_k(morning, morning["quoted_amount_usd"], 1).assign(scorer="largest", k=1),
-    ]).reset_index()
+    lists = pd.concat(
+        [
+            backtest._top_k(morning, morning["won"] * morning["quoted_amount_usd"], 1).assign(scorer="oracle", k=1),
+            backtest._top_k(morning, morning["quoted_amount_usd"], 1).assign(scorer="largest", k=1),
+        ]
+    ).reset_index()
     summary = backtest.summarise(lists, reference="oracle", draws=200, seed=0).set_index("scorer")
     assert summary.loc["oracle", "dollar_capture"] == pytest.approx(1.0)
     assert summary.loc["oracle", ["dollar_capture_gap_lo", "dollar_capture_gap_hi"]].tolist() == [0.0, 0.0]
@@ -92,11 +96,16 @@ def test_identical_orderings_have_a_zero_gap():
 def test_subgroup_check_reports_no_gap_when_predictions_equal_the_observed_rate():
     rng = np.random.default_rng(0)
     n = 4000
-    frame = pd.DataFrame({
-        "quote_id": [f"Q{i}" for i in range(n)], "workflow_type": "recurring",
-        "customer_channel": rng.choice(["referral", "organic"], n), "send_speed": "within a day",
-        "age_days": rng.uniform(0, 30, n), "won": rng.integers(0, 2, n).astype(float),
-    })
+    frame = pd.DataFrame(
+        {
+            "quote_id": [f"Q{i}" for i in range(n)],
+            "workflow_type": "recurring",
+            "customer_channel": rng.choice(["referral", "organic"], n),
+            "send_speed": "within a day",
+            "age_days": rng.uniform(0, 30, n),
+            "won": rng.integers(0, 2, n).astype(float),
+        }
+    )
     bands = pd.cut(frame["age_days"], backtest.AGE_BANDS, include_lowest=True)
     frame["p_now"] = frame.groupby(["customer_channel", bands], observed=True)["won"].transform("mean")
     cells = backtest.subgroup_calibration(frame)

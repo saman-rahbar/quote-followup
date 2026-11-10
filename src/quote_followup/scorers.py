@@ -8,8 +8,9 @@ two methods to be tested against the rest.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable, Literal, Protocol
+from typing import Literal, Protocol
 
 import numpy as np
 import pandas as pd
@@ -67,7 +68,8 @@ class FollowUpModel:
         lost = settled[settled["won"] == 0]
         self.propensity = LogisticScore(s.categorical, s.numeric, s.regularization_c).fit(settled, settled["won"])
         self.decline_share = LogisticScore(s.categorical, s.numeric, s.regularization_c).fit(
-            lost, lost["status"].eq("declined"))
+            lost, lost["status"].eq("declined")
+        )
         self.timing = DecisionTiming.fit(settled, s.timing_segments, s.timing_min_quotes)
         self.trained_on = len(settled)
         return self
@@ -92,11 +94,13 @@ class FollowUpModel:
     def priority(self, candidates: pd.DataFrame) -> np.ndarray:
         return self.assess(candidates)[self.rank_by].to_numpy()
 
-    def _days_until_half(self, candidates: pd.DataFrame, at_send: np.ndarray, q: np.ndarray,
-                         p_now: np.ndarray) -> np.ndarray:
+    def _days_until_half(
+        self, candidates: pd.DataFrame, at_send: np.ndarray, q: np.ndarray, p_now: np.ndarray
+    ) -> np.ndarray:
         """How many more quiet days until today's chance is cut in half (inf if not before it expires)."""
-        days_left = ((candidates["expires_at"] - candidates["sent_at"]) / pd.Timedelta(days=1)
-                     - candidates["age_days"]).to_numpy()
+        days_left = (
+            (candidates["expires_at"] - candidates["sent_at"]) / pd.Timedelta(days=1) - candidates["age_days"]
+        ).to_numpy()
         result = np.full(len(candidates), np.inf)
         for step in np.arange(0.5, 30.5, 0.5):
             later = candidates.assign(age_days=candidates["age_days"] + step)

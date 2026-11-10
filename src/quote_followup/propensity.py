@@ -24,13 +24,20 @@ class LogisticScore:
     def __init__(self, categorical: tuple[str, ...], numeric: tuple[str, ...], c: float = 1.0):
         self.categorical = categorical
         self.numeric = numeric
-        self._pipeline = Pipeline([
-            ("encode", ColumnTransformer([
-                ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), list(categorical)),
-                ("num", StandardScaler(), list(numeric)),
-            ])),
-            ("fit", LogisticRegression(C=c, max_iter=1000)),
-        ])
+        self._pipeline = Pipeline(
+            [
+                (
+                    "encode",
+                    ColumnTransformer(
+                        [
+                            ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), list(categorical)),
+                            ("num", StandardScaler(), list(numeric)),
+                        ]
+                    ),
+                ),
+                ("fit", LogisticRegression(C=c, max_iter=1000)),
+            ]
+        )
         self._typical: np.ndarray | None = None
 
     @property
@@ -63,4 +70,4 @@ class LogisticScore:
         terms = encode.transform(frame[list(self.features)]) * model.coef_[0]
         widths = [len(c) for c in encode.named_transformers_["cat"].categories_] + [1] * len(self.numeric)
         edges = np.cumsum([0, *widths])
-        return np.column_stack([terms[:, a:b].sum(axis=1) for a, b in zip(edges[:-1], edges[1:])])
+        return np.column_stack([terms[:, a:b].sum(axis=1) for a, b in zip(edges[:-1], edges[1:], strict=True)])

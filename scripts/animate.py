@@ -108,24 +108,55 @@ def main() -> None:
         assessed = model.assess(frame)
         frame = frame.join(assessed).sort_values(["expected_value", "quote_id"], ascending=[False, True])
 
-        for (ages, path), (_, row) in zip(trajectories(model, frame), frame.iterrows()):
+        for (ages, path), (_, row) in zip(trajectories(model, frame), frame.iterrows(), strict=True):
             ax.plot(ages, path, color=style.WORKFLOW_COLOURS[row["workflow_type"]], alpha=0.22, lw=1.2)
         colours = [style.WORKFLOW_COLOURS[w] for w in frame["workflow_type"]]
-        ax.scatter(frame["age_days"], frame["p_now"], s=size(frame["quoted_amount_usd"]), c=colours,
-                   edgecolor="white", linewidth=1.5, zorder=3)
+        ax.scatter(
+            frame["age_days"],
+            frame["p_now"],
+            s=size(frame["quoted_amount_usd"]),
+            c=colours,
+            edgecolor="white",
+            linewidth=1.5,
+            zorder=3,
+        )
         top = frame.head(capacity)
-        ax.scatter(top["age_days"], top["p_now"], s=size(top["quoted_amount_usd"]) + 160,
-                   facecolor="none", edgecolor=style.INK, linewidth=1.6, zorder=4)
+        ax.scatter(
+            top["age_days"],
+            top["p_now"],
+            s=size(top["quoted_amount_usd"]) + 160,
+            facecolor="none",
+            edgecolor=style.INK,
+            linewidth=1.6,
+            zorder=4,
+        )
         for rank, (_, row) in enumerate(top.iterrows(), start=1):
-            ax.annotate(f"#{rank}  {money(row['quoted_amount_usd'])}", (row["age_days"], row["p_now"]),
-                        xytext=(12, 10), textcoords="offset points", fontsize=10, weight="bold", color=style.INK)
+            ax.annotate(
+                f"#{rank}  {money(row['quoted_amount_usd'])}",
+                (row["age_days"], row["p_now"]),
+                xytext=(12, 10),
+                textcoords="offset points",
+                fontsize=10,
+                weight="bold",
+                color=style.INK,
+            )
 
         for event in fading:
             alpha = event["left"] / FADE_FRAMES
             colour = style.WON if event["won"] else style.LOST
-            ax.scatter([event["age"]], [event["p"]], s=size(np.array([event["amount"]])), c=colour, alpha=alpha * 0.8, zorder=2)
-            ax.annotate(event["label"], (event["age"], event["p"]), xytext=(10, -14), textcoords="offset points",
-                        color=colour, alpha=alpha, fontsize=10, weight="bold")
+            ax.scatter(
+                [event["age"]], [event["p"]], s=size(np.array([event["amount"]])), c=colour, alpha=alpha * 0.8, zorder=2
+            )
+            ax.annotate(
+                event["label"],
+                (event["age"], event["p"]),
+                xytext=(10, -14),
+                textcoords="offset points",
+                color=colour,
+                alpha=alpha,
+                fontsize=10,
+                weight="bold",
+            )
             event["left"] -= 1
         fading[:] = [e for e in fading if e["left"] > 0]
 
@@ -139,9 +170,13 @@ def main() -> None:
         ax.set_ylabel("chance of a yes today")
         ax.set_title(f"{name} ({args.sp})", loc="left")
         ax.text(0, 1.06, now.strftime("%A %d %b %Y, %H:%M"), transform=ax.transAxes, color=style.INK_2, fontsize=11)
-        handles = [Line2D([], [], marker="o", ls="", color=c, label=style.WORKFLOW_NAMES[w], ms=8)
-                   for w, c in style.WORKFLOW_COLOURS.items()]
-        handles.append(Line2D([], [], marker="o", ls="", mfc="none", mec=style.INK, ms=11, label=f"call today (top {capacity})"))
+        handles = [
+            Line2D([], [], marker="o", ls="", color=c, label=style.WORKFLOW_NAMES[w], ms=8)
+            for w, c in style.WORKFLOW_COLOURS.items()
+        ]
+        handles.append(
+            Line2D([], [], marker="o", ls="", mfc="none", mec=style.INK, ms=11, label=f"call today (top {capacity})")
+        )
         ax.legend(handles=handles, loc="upper right", fontsize=9.5)
 
         panel.text(0, 1.0, "Call today", weight="bold", fontsize=12.5, va="top")
@@ -152,9 +187,16 @@ def main() -> None:
                 panel.text(0, y, "Can wait", weight="bold", fontsize=11, va="top", color=style.INK_2)
                 y -= 0.06
             colour = style.INK if rank <= capacity else style.MUTED
-            panel.text(0, y, f"{rank}. {money(row['quoted_amount_usd']):>7}  {WORK_SHORT[row['workflow_type']]:<10}"
-                             f"{row['p_now']:>4.0%} chance",
-                       family="monospace", fontsize=10, va="top", color=colour)
+            panel.text(
+                0,
+                y,
+                f"{rank}. {money(row['quoted_amount_usd']):>7}  {WORK_SHORT[row['workflow_type']]:<10}"
+                f"{row['p_now']:>4.0%} chance",
+                family="monospace",
+                fontsize=10,
+                va="top",
+                color=colour,
+            )
             y -= 0.055
             if rank == 8:
                 break

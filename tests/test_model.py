@@ -12,12 +12,14 @@ AS_OF = pd.Timestamp("2024-11-01 08:00")
 
 
 def _toy_settled() -> pd.DataFrame:
-    return pd.DataFrame({
-        "workflow_type": ["recurring"] * 6,
-        "won": [1, 1, 1, 0, 0, 0],
-        "status": ["accepted"] * 3 + ["declined", "expired", "expired"],
-        "days_to_decision": [0.5, 1.0, 1.5, 6.0, np.nan, np.nan],
-    })
+    return pd.DataFrame(
+        {
+            "workflow_type": ["recurring"] * 6,
+            "won": [1, 1, 1, 0, 0, 0],
+            "status": ["accepted"] * 3 + ["declined", "expired", "expired"],
+            "days_to_decision": [0.5, 1.0, 1.5, 6.0, np.nan, np.nan],
+        }
+    )
 
 
 def _ages(*ages: float) -> pd.DataFrame:

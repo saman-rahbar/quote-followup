@@ -1,27 +1,25 @@
 """Command line entry points.
 
-    quote-followup board --sp SP0027 --as-of 2024-11-14       the worked example
-    quote-followup board --sp SP0027 --as-of 2024-11-14 --hindsight
-    quote-followup backtest                                     replay Sep to Dec 2024
-    quote-followup audit --zip ../data.zip                      check the data is read as supplied
-    quote-followup train --as-of 2024-12-12                     save a fitted model to models/
-    quote-followup board --sp SP0267 --as-of 2024-12-12 --model models/quote_followup_2024-12-12.pkl
+quote-followup board --sp SP0027 --as-of 2024-11-14       the worked example
+quote-followup board --sp SP0027 --as-of 2024-11-14 --hindsight
+quote-followup backtest                                     replay Sep to Dec 2024
+quote-followup audit --zip ../data.zip                      check the data is read as supplied
+quote-followup train --as-of 2024-12-12                     save a fitted model to models/
+quote-followup board --sp SP0267 --as-of 2024-12-12 --model models/quote_followup_2024-12-12.pkl
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
 import pandas as pd
 
 from . import artifacts, audit, backtest
-from .board import followup_board, render
+from .board import followup_board, render, with_outcomes
 from .config import Settings, load_settings
 from .data import load_quotes
-from .scorers import (BIGGEST_FIRST, DAYS_QUIET_X_AMOUNT, NEWEST_FIRST, OUR_LIST, OUR_LIST_BY_CHANCE,
-                      FollowUpModel, all_scorers)
+from .scorers import FollowUpModel
 
 
 def _morning(settings: Settings, day: str) -> pd.Timestamp:
@@ -36,8 +34,10 @@ def _board(settings: Settings, args: argparse.Namespace) -> None:
     if args.model:
         model, fitted_at = artifacts.load(Path(args.model))
         if fitted_at > as_of:
-            raise SystemExit(f"That model was fitted on {fitted_at:%d %b %Y %H:%M}, after this morning. "
-                             "Using it would let the list see the future.")
+            raise SystemExit(
+                f"That model was fitted on {fitted_at:%d %b %Y %H:%M}, after this morning. "
+                "Using it would let the list see the future."
+            )
     else:
         model, fitted_at = FollowUpModel(settings.model).fit(quotes, as_of), as_of
     capacity = args.top or settings.followup.daily_capacity
@@ -45,15 +45,15 @@ def _board(settings: Settings, args: argparse.Namespace) -> None:
 
     name = quotes.loc[quotes["sp_id"].eq(args.sp), "business_name"].iloc[0]
     print(f"{name} ({args.sp}), morning of {as_of:%a %d %b %Y}")
-    print(f"Learned from {model.trained_on:,} past quotes with a known outcome, all sent before "
-          f"{fitted_at - pd.Timedelta(days=settings.model.label_horizon_days):%d %b %Y}.\n")
+    print(
+        f"Learned from {model.trained_on:,} past quotes with a known outcome, all sent before "
+        f"{fitted_at - pd.Timedelta(days=settings.model.label_horizon_days):%d %b %Y}.\n"
+    )
     print(render(board, capacity))
 
     if args.hindsight:
-        # Look up what really happened to each quote, to check the list against reality.
-        outcome = quotes.loc[board.index, ["quote_id", "status", "decided_at"]]
         print("\nWhat actually happened (the model could not see this):")
-        print(outcome.to_string(index=False))
+        print(with_outcomes(board, quotes)[["how it ended", "reply came"]].to_string())
 
     if args.out:
         board.to_csv(args.out, index=False)
@@ -61,33 +61,18 @@ def _board(settings: Settings, args: argparse.Namespace) -> None:
 
 
 def _backtest(settings: Settings, args: argparse.Namespace) -> None:
-    quotes = load_quotes(settings.data_dir)
-    scorers = all_scorers(settings.model)
-    result = backtest.run(quotes, scorers, settings)
-    bt = settings.backtest
-    summary = backtest.summarise(result.lists, scorers[0].name, bt.bootstrap_draws, bt.seed)
-
+    ev = backtest.evaluate(load_quotes(settings.data_dir), settings)
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    summary.to_csv(out / "backtest_summary.csv", index=False)
-    result.predictions.to_csv(out / "backtest_predictions.csv", index=False)
-    backtest.by_month(result.lists).to_csv(out / "backtest_by_month.csv", index=False)
-    backtest.subgroup_calibration(result.predictions).to_csv(out / "subgroup_calibration.csv", index=False)
-    comparisons = [(OUR_LIST, DAYS_QUIET_X_AMOUNT, "dollar_capture", 1), (OUR_LIST, DAYS_QUIET_X_AMOUNT, "dollar_capture", 3),
-                   (OUR_LIST, NEWEST_FIRST, "dollar_capture", 1), (OUR_LIST, BIGGEST_FIRST, "dollar_capture", 1),
-                   (OUR_LIST, NEWEST_FIRST, "hit_rate", 1),
-                   (OUR_LIST_BY_CHANCE, NEWEST_FIRST, "hit_rate", 1),
-                   (OUR_LIST_BY_CHANCE, NEWEST_FIRST, "hit_rate", 3)]
-    pd.DataFrame([backtest.paired_gap(result.lists, a, b, m, k, bt.bootstrap_draws, bt.seed)
-                  for a, b, m, k in comparisons]).to_csv(out / "paired_comparisons.csv", index=False)
-    quality = backtest.prediction_quality(result.predictions)
-    (out / "prediction_quality.json").write_text(json.dumps(quality, indent=2))
+    ev.summary.to_csv(out / "backtest_summary.csv", index=False)
+    ev.result.predictions.to_csv(out / "backtest_predictions.csv", index=False)
+    ev.monthly.to_csv(out / "backtest_by_month.csv", index=False)
+    ev.subgroups.to_csv(out / "subgroup_calibration.csv", index=False)
+    ev.comparisons.to_csv(out / "paired_comparisons.csv", index=False)
+    (out / "prediction_quality.json").write_text(ev.quality["our model"].to_json(indent=2))
 
-    shown = summary[["scorer", "k", "mornings", "hit_rate", "hit_rate_lo", "hit_rate_hi",
-                     "dollar_capture", "dollar_capture_lo", "dollar_capture_hi"]]
-    print(shown.to_string(index=False, float_format="{:.3f}".format))
-    print("\nWin chance over every candidate morning:")
-    print("\n".join(f"  {name}: {value:,.3f}" for name, value in quality.items()))
+    shown = ev.summary[["scorer", "k", "dollar_capture", "dollar_capture_lo", "dollar_capture_hi", "hit_rate"]]
+    print(backtest.for_people(shown).to_string(index=False, float_format="{:.3f}".format))
     print(f"\nWritten to {out}/")
 
 

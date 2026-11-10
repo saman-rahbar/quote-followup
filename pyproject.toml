@@ -13,8 +13,8 @@ dependencies = [
 
 [project.optional-dependencies]
 figures = ["matplotlib>=3.8", "pillow>=10"]
-notebooks = ["matplotlib>=3.8", "pillow>=10", "nbformat>=5.10", "nbclient>=0.10", "ipykernel>=6.29", "jupyterlab>=4.2"]
-dev = ["pytest>=8"]
+notebooks = ["matplotlib>=3.8", "pillow>=10", "ipykernel>=6.29", "jupyterlab>=4.2", "nbconvert>=7.16"]
+dev = ["pytest>=8", "ruff>=0.6"]
 
 [project.scripts]
 quote-followup = "quote_followup.cli:main"
@@ -29,3 +29,18 @@ packages = ["src/quote_followup"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-include = ["*.ipynb"]
+extend-exclude = ["data", "outputs", "models"]
+
+[tool.ruff.lint]
+# Errors, likely bugs, import order and modern syntax. Style beyond that is left to judgement.
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Notebooks and scripts add ../scripts or the scripts folder to the path before importing from it.
+"notebooks/*.ipynb" = ["E402"]
+"scripts/*.py" = ["E402"]

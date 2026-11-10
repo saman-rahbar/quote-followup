@@ -19,7 +19,17 @@ from scipy.stats import norm
 from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
 
 from .config import Settings
-from .scorers import AgeCurveValue, FollowUpModel, Scorer
+from .scorers import (
+    BIGGEST_FIRST,
+    DAYS_QUIET_X_AMOUNT,
+    NEWEST_FIRST,
+    OUR_LIST,
+    OUR_LIST_BY_CHANCE,
+    AgeCurveValue,
+    FollowUpModel,
+    Scorer,
+    all_scorers,
+)
 from .timeline import open_quotes
 
 
@@ -43,16 +53,20 @@ def _top_k(candidates: pd.DataFrame, priority: np.ndarray, k: int) -> pd.DataFra
     ranked = c.sort_values(["sp_id", "priority", "quote_id"], ascending=[True, False, True])
     picked = ranked.groupby("sp_id").head(k).groupby("sp_id")
     best = c.sort_values("won_value", ascending=False).groupby("sp_id").head(k).groupby("sp_id")
-    out = pd.DataFrame({
-        "hit_rate": picked["won"].mean(),
-        "won_value": picked["won_value"].sum(),
-        "best_value": best["won_value"].sum(),
-        "n_open": c.groupby("sp_id").size(),
-    })
+    out = pd.DataFrame(
+        {
+            "hit_rate": picked["won"].mean(),
+            "won_value": picked["won_value"].sum(),
+            "best_value": best["won_value"].sum(),
+            "n_open": c.groupby("sp_id").size(),
+        }
+    )
     return out.assign(mornings=1)
 
 
-def run(quotes: pd.DataFrame, scorers: list[Scorer], settings: Settings, ks: tuple[int, ...] = (1, 3)) -> BacktestResult:
+def run(
+    quotes: pd.DataFrame, scorers: list[Scorer], settings: Settings, ks: tuple[int, ...] = (1, 3)
+) -> BacktestResult:
     lists, predictions = [], []
     # Keep the chances our model gave (and the simple rival's), to check later whether they came true.
     logged = next(s for s in scorers if isinstance(s, FollowUpModel))
@@ -117,7 +131,7 @@ def summarise(lists: pd.DataFrame, reference: str, draws: int, seed: int) -> pd.
         family = at_k["scorer"].nunique() - 1
         tail = 2.5 / max(family, 1)
 
-        def boot(group: pd.DataFrame, metric: str) -> tuple[float, np.ndarray]:
+        def boot(group: pd.DataFrame, metric: str, sp_ids=sp_ids, weights=weights) -> tuple[float, np.ndarray]:
             num, den = METRICS[metric]
             per_sp = group.groupby("sp_id")[[num, den]].sum().reindex(sp_ids, fill_value=0)
             top, bottom = per_sp[num].to_numpy(), per_sp[den].to_numpy()
@@ -143,8 +157,9 @@ def summarise(lists: pd.DataFrame, reference: str, draws: int, seed: int) -> pd.
     return pd.DataFrame(rows)
 
 
-def paired_gap(lists: pd.DataFrame, first: str, second: str, metric: str, k: int,
-               draws: int, seed: int) -> dict[str, float]:
+def paired_gap(
+    lists: pd.DataFrame, first: str, second: str, metric: str, k: int, draws: int, seed: int
+) -> dict[str, float]:
     """How much better `first` scores than `second`, with a 95% range from re-drawing businesses."""
     at_k = lists[lists["k"] == k]
     sp_ids = np.sort(at_k["sp_id"].unique())
@@ -165,13 +180,18 @@ def paired_gap(lists: pd.DataFrame, first: str, second: str, metric: str, k: int
 def by_month(lists: pd.DataFrame) -> pd.DataFrame:
     """Scores month by month, to check the result isn't driven by one unusual stretch."""
     month = pd.to_datetime(lists["morning"]).dt.to_period("M").astype(str)
-    sums = lists.assign(month=month).groupby(["k", "scorer", "month"], sort=False)[
-        ["hit_rate", "mornings", "won_value", "best_value"]].sum()
-    return pd.DataFrame({
-        "hit_rate": sums["hit_rate"] / sums["mornings"],
-        "dollar_capture": sums["won_value"] / sums["best_value"],
-        "mornings": sums["mornings"],
-    }).reset_index()
+    sums = (
+        lists.assign(month=month)
+        .groupby(["k", "scorer", "month"], sort=False)[["hit_rate", "mornings", "won_value", "best_value"]]
+        .sum()
+    )
+    return pd.DataFrame(
+        {
+            "hit_rate": sums["hit_rate"] / sums["mornings"],
+            "dollar_capture": sums["won_value"] / sums["best_value"],
+            "mornings": sums["mornings"],
+        }
+    ).reset_index()
 
 
 AGE_BANDS = (0, 1, 3, 7, 14, 30)
@@ -196,9 +216,20 @@ def subgroup_calibration(predictions: pd.DataFrame, min_rows: int = 100) -> pd.D
                 continue
             residual = g["won"] - g["p_now"]
             se = np.sqrt((residual.groupby(g["quote_id"]).sum() ** 2).sum()) / len(g)
-            cells.append({"workflow_type": key[0], "split": second, "level": key[1], "age_band": key[2],
-                          "rows": len(g), "quotes": g["quote_id"].nunique(), "predicted": g["p_now"].mean(),
-                          "observed": g["won"].mean(), "gap": residual.mean(), "z": residual.mean() / se})
+            cells.append(
+                {
+                    "workflow_type": key[0],
+                    "split": second,
+                    "level": key[1],
+                    "age_band": key[2],
+                    "rows": len(g),
+                    "quotes": g["quote_id"].nunique(),
+                    "predicted": g["p_now"].mean(),
+                    "observed": g["won"].mean(),
+                    "gap": residual.mean(),
+                    "z": residual.mean() / se,
+                }
+            )
     return pd.DataFrame(cells)
 
 
@@ -229,7 +260,8 @@ def prediction_quality(predictions: pd.DataFrame, bins: int = 10) -> dict[str, f
     first = predictions.sort_values("age_days").groupby("quote_id").head(1)
     bands = pd.cut(predictions["age_days"], AGE_BANDS, include_lowest=True)
     within_age = predictions.groupby(bands, observed=True).apply(
-        lambda g: roc_auc_score(g["won"], g["p_now"]), include_groups=False)
+        lambda g: roc_auc_score(g["won"], g["p_now"]), include_groups=False
+    )
     return {
         "quote_mornings": int(len(y)),
         "quotes": int(predictions["quote_id"].nunique()),
@@ -242,3 +274,90 @@ def prediction_quality(predictions: pd.DataFrame, bins: int = 10) -> dict[str, f
         "brier": brier_score_loss(y, p),
         "expected_calibration_error": float(np.sum(gaps)),
     } | subgroup_summary(subgroup_calibration(predictions))
+
+
+# The comparisons every report shows: (first, second, measure, number of calls).
+COMPARISONS = [
+    (OUR_LIST, NEWEST_FIRST, "dollar_capture", 1),
+    (OUR_LIST, BIGGEST_FIRST, "dollar_capture", 1),
+    (OUR_LIST, DAYS_QUIET_X_AMOUNT, "dollar_capture", 1),
+    (OUR_LIST, DAYS_QUIET_X_AMOUNT, "dollar_capture", 3),
+    (OUR_LIST, NEWEST_FIRST, "hit_rate", 1),
+    (OUR_LIST_BY_CHANCE, NEWEST_FIRST, "hit_rate", 1),
+    (OUR_LIST_BY_CHANCE, NEWEST_FIRST, "hit_rate", 3),
+]
+
+
+@dataclass(frozen=True)
+class Evaluation:
+    """Everything the replay produces, in one place, for the command line and the notebooks alike."""
+
+    result: BacktestResult
+    summary: pd.DataFrame
+    comparisons: pd.DataFrame
+    first_measure: pd.Series
+    quality: pd.DataFrame
+    subgroups: pd.DataFrame
+    simple_subgroups: pd.DataFrame
+    monthly: pd.DataFrame
+
+
+def evaluate(quotes: pd.DataFrame, settings: Settings) -> Evaluation:
+    """Replay every morning with every way of ordering, then score them all."""
+    result = run(quotes, all_scorers(settings.model), settings)
+    draws, seed = settings.backtest.bootstrap_draws, settings.backtest.seed
+    one = result.lists[(result.lists["k"] == 1) & (result.lists["best_value"] > 0)]
+    predictions = result.predictions
+    simple = predictions.assign(p_now=predictions["p_age_only"])
+    return Evaluation(
+        result=result,
+        summary=summarise(result.lists, OUR_LIST, draws, seed),
+        comparisons=pd.DataFrame([paired_gap(result.lists, a, b, m, k, draws, seed) for a, b, m, k in COMPARISONS]),
+        # The average of each morning's share: shown for contrast, since it weighs a $60 morning
+        # the same as a $6,000 one.
+        first_measure=(one["won_value"] / one["best_value"]).groupby(one["scorer"], sort=False).mean(),
+        quality=pd.DataFrame(
+            {"our model": prediction_quality(predictions), "days waiting only": prediction_quality(simple)}
+        ),
+        subgroups=subgroup_calibration(predictions),
+        simple_subgroups=subgroup_calibration(simple),
+        monthly=by_month(result.lists),
+    )
+
+
+PLAIN = {
+    "scorer": "way of ordering",
+    "k": "calls",
+    "first": "this order",
+    "second": "compared with",
+    "metric": "measure",
+    "gap": "difference",
+    "lo": "low",
+    "hi": "high",
+    "dollar_capture": "dollars won",
+    "dollar_capture_lo": "dollars low",
+    "dollar_capture_hi": "dollars high",
+    "hit_rate": "yes rate",
+    "hit_rate_lo": "yes low",
+    "hit_rate_hi": "yes high",
+    "quote_mornings": "quote-mornings scored",
+    "quotes": "different quotes",
+    "auc_pooled": "AUC, every waiting morning counted",
+    "auc_pooled_age_only": "AUC of days waiting alone",
+    "auc_first_morning": "AUC, each quote counted once",
+    "auc_within_age_band_min": "AUC among quotes the same age, lowest",
+    "auc_within_age_band_max": "AUC among quotes the same age, highest",
+    "log_loss": "log loss (lower is better)",
+    "brier": "Brier score (lower is better)",
+    "expected_calibration_error": "average gap between chance and reality",
+    "subgroup_cells": "groups checked",
+    "subgroup_z_threshold": "luck threshold (z)",
+    "subgroup_cells_beyond": "groups off by more than luck",
+    "subgroup_max_abs_z": "worst miss (z)",
+    "subgroup_max_abs_gap": "worst miss (share of quotes)",
+}
+
+
+def for_people(table: pd.DataFrame) -> pd.DataFrame:
+    """The same table with plain-language labels, for reading rather than for files."""
+    return table.rename(columns=PLAIN, index=PLAIN).replace({"metric": PLAIN, "measure": PLAIN})

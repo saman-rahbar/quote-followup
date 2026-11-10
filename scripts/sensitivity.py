@@ -38,31 +38,39 @@ def run(quotes: pd.DataFrame, settings, draws: int = 300) -> pd.DataFrame:
         "stale open quotes counted as lost": (open_as_lost(quotes), m),
         "wait 60 days, not 45, before learning from a quote": (quotes, replace(m, label_horizon_days=60)),
         "reply speeds may use groups of 50 quotes, not 200": (quotes, replace(m, timing_min_quotes=50)),
-        "reply speeds also learned by customer source": (quotes, replace(m, timing_segments=("workflow_type", "customer_channel"))),
+        "reply speeds also learned by customer source": (
+            quotes,
+            replace(m, timing_segments=("workflow_type", "customer_channel")),
+        ),
     }
     rows = []
     for name, (book, model_settings) in variants.items():
-        scorers = [FollowUpModel(model_settings), AgeCurveValue(model_settings.label_horizon_days),
-                   *[r for r in RULES_OF_THUMB if r.name != RANDOM_ORDER]]
+        scorers = [
+            FollowUpModel(model_settings),
+            AgeCurveValue(model_settings.label_horizon_days),
+            *[r for r in RULES_OF_THUMB if r.name != RANDOM_ORDER],
+        ]
         result = backtest.run(book, scorers, settings, ks=(1,))
         summary = backtest.summarise(result.lists, scorers[0].name, draws, settings.backtest.seed).set_index("scorer")
         quality = backtest.prediction_quality(result.predictions)
         model, curve = scorers[0].name, scorers[1].name
         rules = summary.loc[[r.name for r in scorers[2:]], "dollar_capture"]
         best_rule = rules.idxmax()
-        rows.append({
-            "what changed": name,
-            "our list": summary.loc[model, "dollar_capture"],
-            "days waiting x amount": summary.loc[curve, "dollar_capture"],
-            "best rule of thumb": best_rule,
-            "its dollars won": rules.max(),
-            "our lead over it": -summary.loc[best_rule, "dollar_capture_gap"],
-            "lead low": -summary.loc[best_rule, "dollar_capture_gap_hi"],
-            "lead high": -summary.loc[best_rule, "dollar_capture_gap_lo"],
-            "lead over days waiting x amount": -summary.loc[curve, "dollar_capture_gap"],
-            "average chance gap": quality["expected_calibration_error"],
-            "groups missed beyond luck": quality["subgroup_cells_beyond"],
-        })
+        rows.append(
+            {
+                "what changed": name,
+                "our list": summary.loc[model, "dollar_capture"],
+                "days waiting x amount": summary.loc[curve, "dollar_capture"],
+                "best rule of thumb": best_rule,
+                "its dollars won": rules.max(),
+                "our lead over it": -summary.loc[best_rule, "dollar_capture_gap"],
+                "lead low": -summary.loc[best_rule, "dollar_capture_gap_hi"],
+                "lead high": -summary.loc[best_rule, "dollar_capture_gap_lo"],
+                "lead over days waiting x amount": -summary.loc[curve, "dollar_capture_gap"],
+                "average chance gap": quality["expected_calibration_error"],
+                "groups missed beyond luck": quality["subgroup_cells_beyond"],
+            }
+        )
     return pd.DataFrame(rows)
 
 

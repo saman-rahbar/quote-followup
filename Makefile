@@ -38,7 +38,7 @@ figures: backtest
 	$(PY) scripts/animate.py
 
 notebooks:
-	$(PY) notebooks/build.py
+	$(PY) -m jupyter nbconvert --to notebook --execute --inplace notebooks/*.ipynb
 
 test:
 	$(PY) -m pytest

@@ -20,7 +20,7 @@ def _weights(score) -> dict[str, float]:
     """What each fact adds to the score, by name (e.g. "workflow_type=emergency": 0.59)."""
     encode, fitted = score._pipeline[0], score._pipeline[-1]
     names = [name.split("__", 1)[1] for name in encode.get_feature_names_out()]
-    return {name: round(float(w), 4) for name, w in zip(names, fitted.coef_[0])}
+    return {name: round(float(w), 4) for name, w in zip(names, fitted.coef_[0], strict=True)}
 
 
 def summary(model: FollowUpModel, as_of: pd.Timestamp) -> dict:
@@ -31,7 +31,9 @@ def summary(model: FollowUpModel, as_of: pd.Timestamp) -> dict:
             "yeses learned from": int(curve.win_days.size),
             "median days until a yes": round(float(np.median(curve.win_days)), 2) if curve.win_days.size else None,
             "nos learned from": int(curve.decline_days.size),
-            "median days until a no": round(float(np.median(curve.decline_days)), 2) if curve.decline_days.size else None,
+            "median days until a no": round(float(np.median(curve.decline_days)), 2)
+            if curve.decline_days.size
+            else None,
         }
     return {
         "fitted as of": str(as_of),

@@ -36,9 +36,5 @@ def settled_quotes(quotes: pd.DataFrame, as_of: pd.Timestamp, horizon_days: int)
     nos aren't, so learning from them would make yeses look more common than they are.
     """
     cutoff = as_of - pd.Timedelta(days=horizon_days)
-    settled = (
-        quotes["won"].notna()
-        & (quotes["sent_at"] < cutoff)
-        & (quotes["resolved_at"] <= as_of)
-    )
+    settled = quotes["won"].notna() & (quotes["sent_at"] < cutoff) & (quotes["resolved_at"] <= as_of)
     return quotes.loc[settled]

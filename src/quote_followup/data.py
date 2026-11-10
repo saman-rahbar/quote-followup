@@ -27,8 +27,9 @@ class DataContractError(ValueError):
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 
-def read_table(path: Path, columns: list[str], timestamps: tuple[str, ...] = (),
-               numbers: dict[str, type] | None = None) -> pd.DataFrame:
+def read_table(
+    path: Path, columns: list[str], timestamps: tuple[str, ...] = (), numbers: dict[str, type] | None = None
+) -> pd.DataFrame:
     """Read a file as plain text, then convert the named date and number columns, strictly."""
     frame = pd.read_csv(path, usecols=columns, dtype=str, keep_default_na=False, na_values=[""])
     for column in timestamps:
@@ -40,22 +41,38 @@ def load_quotes(data_dir: Path | str) -> pd.DataFrame:
     data_dir = Path(data_dir)
     quotes = read_table(
         data_dir / "quotes.csv",
-        ["quote_id", "sp_id", "customer_id", "property_id", "workflow_type", "created_at", "sent_at",
-         "expires_at", "decided_at", "status", "quoted_amount_usd", "line_item_count", "decline_reason"],
+        [
+            "quote_id",
+            "sp_id",
+            "customer_id",
+            "property_id",
+            "workflow_type",
+            "created_at",
+            "sent_at",
+            "expires_at",
+            "decided_at",
+            "status",
+            "quoted_amount_usd",
+            "line_item_count",
+            "decline_reason",
+        ],
         timestamps=("created_at", "sent_at", "expires_at", "decided_at"),
         numbers={"quoted_amount_usd": float, "line_item_count": int},
     )
     customers = read_table(
-        data_dir / "customers.csv", ["customer_id", "sp_id", "customer_type", "acquisition_channel"],
+        data_dir / "customers.csv",
+        ["customer_id", "sp_id", "customer_type", "acquisition_channel"],
     ).rename(columns={"acquisition_channel": "customer_channel"})
     providers = read_table(
-        data_dir / "service_providers.csv", ["sp_id", "synthetic_business_name", "industry"],
+        data_dir / "service_providers.csv",
+        ["sp_id", "synthetic_business_name", "industry"],
     ).rename(columns={"synthetic_business_name": "business_name"})
 
     # Matching on the business as well as the customer keeps every record with the business that
     # owns it. A customer filed under the wrong business won't match, and the check below stops the run.
-    quotes = quotes.merge(customers, on=["sp_id", "customer_id"], how="left", validate="many_to_one",
-                          indicator="customer_match")
+    quotes = quotes.merge(
+        customers, on=["sp_id", "customer_id"], how="left", validate="many_to_one", indicator="customer_match"
+    )
     quotes = quotes.merge(providers, on="sp_id", how="left", validate="many_to_one", indicator="sp_match")
     _check_contract(quotes)
     return _derive(quotes.drop(columns=["customer_match", "sp_match"]))

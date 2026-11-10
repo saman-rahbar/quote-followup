@@ -1,5 +1,10 @@
 # Which quote should I call first?
 
+[![CI](https://github.com/saman-rahbar/quote-followup/actions/workflows/ci.yml/badge.svg)](https://github.com/saman-rahbar/quote-followup/actions/workflows/ci.yml)
+![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)
+![Linted with Ruff](https://img.shields.io/badge/lint-ruff-D7FF64?logo=ruff&logoColor=black)
+![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)
+
 Every morning, this tool looks at a home-service business's quotes that are still waiting for a
 reply and ranks them, so the owner knows which call is worth making first, and why.
 
@@ -110,6 +115,48 @@ The notebooks walk through the work in order:
 [5 did it work](notebooks/05_testing_the_hypotheses.ipynb) ·
 [6 the owner's view](notebooks/06_the_solution.ipynb)
 
+## What's in the repo
+
+```text
+quote-followup/
+├── README.md                    you are here
+├── DESIGN.md                    the choices behind the model, in plain terms
+├── config.toml                  every setting in one place
+├── Makefile                     one command per step; `make all` rebuilds everything
+├── Dockerfile · compose.yaml    JupyterLab and the full rebuild, in containers
+├── pyproject.toml               the package and what it depends on
+├── requirements.lock            the exact library versions it was tested with
+│
+├── src/quote_followup/          the tool itself
+│   ├── data.py                  reads the files and keeps every record with its own business
+│   ├── audit.py                 the 86 checks that prove the data is read correctly
+│   ├── timeline.py              what was known on a given date, and nothing more
+│   ├── propensity.py            the simple, explainable scoring model
+│   ├── timing.py                how fast replies come, and what silence means
+│   ├── scorers.py               our list and every rival it's compared with
+│   ├── board.py                 the morning list and the reasons behind each number
+│   ├── backtest.py              the replay of past mornings and every score from it
+│   ├── artifacts.py             saving a fitted model with a readable summary
+│   ├── config.py                reads config.toml
+│   └── cli.py                   the `quote-followup` command
+│
+├── scripts/                     everything around the tool, all built on the package
+│   ├── explore.py               the tables behind notebooks 1 to 3
+│   ├── ablations.py             the model comparisons in notebook 4
+│   ├── sensitivity.py           the "what if I'd decided differently" checks
+│   ├── figures.py · style.py    the charts, in one consistent style
+│   ├── animate.py               the animation at the top of this page
+│   └── unpack_data.py           puts the CSV files from data.zip into data/
+│
+├── notebooks/                   01 to 06: the whole story, from the data to the list
+├── tests/                       21 automated tests, run on every push
+├── outputs/                     every table behind this page, rebuilt by `make all`
+├── assets/                      the charts and the animation
+├── models/                      the saved model's readable summary
+├── reference/                   the data dictionary and diagram that came with the data
+└── .github/workflows/ci.yml     lint, tests and a Docker build on every push
+```
+
 ## What I'd do next
 
 - **Track every run in MLflow.** Results already reproduce exactly, because every setting sits in
@@ -140,5 +187,5 @@ scope and time, so treat them as leads rather than findings:
 
 ## Time
 
-About two hours, including a full second review. 21 automated tests guard the main rules, including
-one that proves the model never sees the future.
+About two hours. 21 automated tests guard the main rules, including one that proves the model never
+sees the future, and they run on every push along with the linting.

@@ -59,8 +59,9 @@ class DecisionTiming:
     curves: dict[tuple, _Curves]
 
     @classmethod
-    def fit(cls, settled: pd.DataFrame, segments: tuple[str, ...] = ("workflow_type",),
-            min_quotes: int = 200) -> DecisionTiming:
+    def fit(
+        cls, settled: pd.DataFrame, segments: tuple[str, ...] = ("workflow_type",), min_quotes: int = 200
+    ) -> DecisionTiming:
         days = settled["days_to_decision"].to_numpy(dtype=float)
         won = settled["won"].to_numpy() == 1
         declined = settled["status"].to_numpy() == "declined"

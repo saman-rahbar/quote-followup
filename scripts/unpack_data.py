@@ -1,6 +1,6 @@
 """Put the supplied CSV files in data/, straight from data.zip. Does nothing if they are already there.
 
-    python scripts/unpack_data.py ../data.zip
+python scripts/unpack_data.py ../data.zip
 """
 
 from __future__ import annotations

@@ -17,20 +17,38 @@ from pathlib import Path
 
 import pandas as pd
 
-TABLES = ("service_providers", "customers", "properties", "quotes", "jobs", "visits", "invoices",
-          "payments", "product_events", "daily_sp_metrics")
+TABLES = (
+    "service_providers",
+    "customers",
+    "properties",
+    "quotes",
+    "jobs",
+    "visits",
+    "invoices",
+    "payments",
+    "product_events",
+    "daily_sp_metrics",
+)
 
 # For each table, the records it points to. A quote must point to a real customer of the same
 # business, a job to a real property of the same customer and business, and so on down the chain.
 LINKS = {
     "customers": [(["sp_id"], "service_providers", ["sp_id"])],
     "properties": [(["customer_id", "sp_id"], "customers", ["customer_id", "sp_id"])],
-    "quotes": [(["customer_id", "sp_id"], "customers", ["customer_id", "sp_id"]),
-               (["property_id", "customer_id", "sp_id"], "properties", ["property_id", "customer_id", "sp_id"])],
-    "jobs": [(["property_id", "customer_id", "sp_id"], "properties", ["property_id", "customer_id", "sp_id"]),
-             (["quote_id", "customer_id", "sp_id"], "quotes", ["quote_id", "customer_id", "sp_id"])],
-    "visits": [(["job_id", "customer_id", "property_id", "sp_id"], "jobs", ["job_id", "customer_id", "property_id", "sp_id"])],
-    "invoices": [(["job_id", "customer_id", "property_id", "sp_id"], "jobs", ["job_id", "customer_id", "property_id", "sp_id"])],
+    "quotes": [
+        (["customer_id", "sp_id"], "customers", ["customer_id", "sp_id"]),
+        (["property_id", "customer_id", "sp_id"], "properties", ["property_id", "customer_id", "sp_id"]),
+    ],
+    "jobs": [
+        (["property_id", "customer_id", "sp_id"], "properties", ["property_id", "customer_id", "sp_id"]),
+        (["quote_id", "customer_id", "sp_id"], "quotes", ["quote_id", "customer_id", "sp_id"]),
+    ],
+    "visits": [
+        (["job_id", "customer_id", "property_id", "sp_id"], "jobs", ["job_id", "customer_id", "property_id", "sp_id"])
+    ],
+    "invoices": [
+        (["job_id", "customer_id", "property_id", "sp_id"], "jobs", ["job_id", "customer_id", "property_id", "sp_id"])
+    ],
     "payments": [(["invoice_id", "customer_id", "sp_id"], "invoices", ["invoice_id", "customer_id", "sp_id"])],
     "product_events": [(["sp_id"], "service_providers", ["sp_id"])],
     "daily_sp_metrics": [(["sp_id"], "service_providers", ["sp_id"])],
@@ -41,8 +59,7 @@ Row = tuple[str, str, str, bool]
 
 def read_raw(data_dir: Path) -> dict[str, pd.DataFrame]:
     """Every table exactly as written in the file, with empty cells marked as missing."""
-    return {t: pd.read_csv(data_dir / f"{t}.csv", dtype=str, keep_default_na=False, na_values=[""])
-            for t in TABLES}
+    return {t: pd.read_csv(data_dir / f"{t}.csv", dtype=str, keep_default_na=False, na_values=[""]) for t in TABLES}
 
 
 def zip_fidelity(data_dir: Path, zip_path: Path) -> list[Row]:
@@ -117,25 +134,37 @@ def links(raw: dict[str, pd.DataFrame]) -> list[Row]:
             orphans = int(matched["_merge"].eq("left_only").sum())
             rows.append(("links", child, f"{'+'.join(child_cols)} -> {parent}: {orphans} orphans", orphans == 0))
     events = raw["product_events"].dropna(subset=["entity_id"])
-    for entity, (table, column) in {"quote": ("quotes", "quote_id"), "job": ("jobs", "job_id"),
-                                    "visit": ("visits", "visit_id"), "invoice": ("invoices", "invoice_id"),
-                                    "payment": ("payments", "payment_id")}.items():
+    for entity, (table, column) in {
+        "quote": ("quotes", "quote_id"),
+        "job": ("jobs", "job_id"),
+        "visit": ("visits", "visit_id"),
+        "invoice": ("invoices", "invoice_id"),
+        "payment": ("payments", "payment_id"),
+    }.items():
         refs = events[events["entity_type"] == entity]
         target = raw[table][[column, "sp_id"]].rename(columns={column: "entity_id"})
-        orphans = int((~refs.set_index(["entity_id", "sp_id"]).index.isin(target.set_index(["entity_id", "sp_id"]).index)).sum())
+        orphans = int(
+            (~refs.set_index(["entity_id", "sp_id"]).index.isin(target.set_index(["entity_id", "sp_id"]).index)).sum()
+        )
         rows.append(("links", "product_events", f"{entity} events -> {table}: {orphans} orphans", orphans == 0))
     return rows
 
 
 def quote_rules(quotes: pd.DataFrame) -> list[Row]:
     """Common-sense rules about a quote's life that the model depends on."""
+
     def rule(name: str, broken: pd.Series) -> Row:
         return ("quote rule", "quotes", f"{name}: {int(broken.sum())} break it", not broken.any())
 
     status = quotes["status"]
     return [
-        rule("created <= sent < expires", ~((quotes["created_at"] <= quotes["sent_at"]) & (quotes["sent_at"] < quotes["expires_at"]))),
-        rule("accepted or declined has decided_at", status.isin(["accepted", "declined"]) & quotes["decided_at"].isna()),
+        rule(
+            "created <= sent < expires",
+            ~((quotes["created_at"] <= quotes["sent_at"]) & (quotes["sent_at"] < quotes["expires_at"])),
+        ),
+        rule(
+            "accepted or declined has decided_at", status.isin(["accepted", "declined"]) & quotes["decided_at"].isna()
+        ),
         rule("expired or open has no decided_at", status.isin(["expired", "open"]) & quotes["decided_at"].notna()),
         rule("decided after sent", quotes["decided_at"].notna() & (quotes["decided_at"] < quotes["sent_at"])),
         rule("decline reason only on declines", quotes["decline_reason"].notna() & status.ne("declined")),
@@ -163,15 +192,28 @@ def reconciliation(raw: dict[str, pd.DataFrame], quotes: pd.DataFrame) -> list[R
         window = ours[ours.index.get_level_values("day") <= daily["day"].max()]
         joined = pd.concat([window.rename("ours"), theirs.rename("theirs")], axis=1).fillna(0)
         mismatched = int((joined["ours"] != joined["theirs"]).sum())
-        rows.append(("reconciles", "daily_sp_metrics", f"{metric}: {mismatched} SP-days differ of {len(joined):,}", mismatched == 0))
+        rows.append(
+            (
+                "reconciles",
+                "daily_sp_metrics",
+                f"{metric}: {mismatched} SP-days differ of {len(joined):,}",
+                mismatched == 0,
+            )
+        )
 
     events = raw["product_events"]
     created = events[events["event_name"] == "quote_created"]
     same = set(created["entity_id"]) == set(quotes["quote_id"])
     at = created.set_index("entity_id")["event_at"].pipe(pd.to_datetime)
     timing = (at.reindex(quotes["quote_id"]).to_numpy() == quotes["created_at"].to_numpy()).mean()
-    rows.append(("reconciles", "product_events", f"quote_created events cover every quote: {same}; same timestamp: {timing:.1%}",
-                 same and timing == 1.0))
+    rows.append(
+        (
+            "reconciles",
+            "product_events",
+            f"quote_created events cover every quote: {same}; same timestamp: {timing:.1%}",
+            same and timing == 1.0,
+        )
+    )
     return rows
 
 
