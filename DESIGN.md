@@ -86,7 +86,11 @@ Practice runs from April to July, scored on quotes the model hadn't seen:
 | **Type of work, customer source, sending speed** | **0.614** |
 | ...plus industry, customer type, quote size and number of items | 0.615 |
 | ...plus the business's or the customer's past win rate | 0.614 to 0.616 |
-| A more complex model (gradient boosting) with every fact | 0.709 |
+| Gradient boosting with every fact | 0.709 |
+| Gradient boosting with the same three facts, shallow and regularised | 0.613 (a tie) |
+
+A carefully held-back boosting model matches the scorecard but doesn't beat it, so I kept the scorecard:
+same accuracy, and every number on the list breaks down exactly into its reasons.
 
 | How to use "days without a reply" | Score | Groups it gets wrong |
 |---|---|---|

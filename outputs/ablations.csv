@@ -8,6 +8,7 @@ without type of work,5990,0.5811986982776398,0.6318766140924913,which facts,,,
 without customer source,5990,0.6234387219807485,0.6185043910999587,which facts,,,
 without sending speed (quote size instead),5990,0.6294873490778634,0.6164709537774615,which facts,,,
 gradient boosting with every fact,5990,0.5866731720307816,0.7086081012875735,which facts,,,
+"gradient boosting, same three facts, shallow and regularised",5990,0.6391186106001211,0.6130092855380154,which facts,,,
 one says-no-or-goes-quiet figure per type of work,24151,0.7598951387096173,0.5717234356032933,using days without a reply,3.0,4.654539389995826,3.410116796081223
 says-no-or-goes-quiet chance per customer (chosen),24151,0.7616018864841336,0.5704980591350031,using days without a reply,1.0,3.6614349714457988,3.410116796081223
 "  same, reply speed also learned by customer source",24151,0.7611952515252449,0.5710516362866624,using days without a reply,2.0,4.709163706263453,3.410116796081223

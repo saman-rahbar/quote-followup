@@ -78,6 +78,17 @@ def boosted(cat: list[str], num: list[str]) -> Pipeline:
     )
 
 
+def boosted_shallow(cat: list[str], num: list[str]) -> Pipeline:
+    """Gradient boosting held back on purpose: shallow trees and large leaves, so it can't chase noise."""
+    model = HistGradientBoostingClassifier(
+        max_depth=2, learning_rate=0.05, max_iter=150, min_samples_leaf=200, random_state=0
+    )
+    encode = ColumnTransformer(
+        [("c", OneHotEncoder(handle_unknown="ignore", sparse_output=False), cat), ("n", "passthrough", num)]
+    )
+    return Pipeline([("enc", encode), ("gb", model)])
+
+
 def landmark(frame: pd.DataFrame) -> pd.DataFrame:
     days = frame["days_to_decision"].fillna(np.inf)
     return pd.concat([frame[days > a].assign(age_days=float(a)) for a in LANDMARKS], ignore_index=True)
@@ -136,6 +147,7 @@ def send_time_ablations(quotes: pd.DataFrame, settings) -> pd.DataFrame:
         "without customer source": (linear, ["workflow_type"], NUM),
         "without sending speed (quote size instead)": (linear, CAT, ["log_amount"]),
         "gradient boosting with every fact": (boosted, every_cat, every_num),
+        "gradient boosting, same three facts, shallow and regularised": (boosted_shallow, CAT, NUM),
     }
     for name, (make, cat, num) in send_time.items():
 

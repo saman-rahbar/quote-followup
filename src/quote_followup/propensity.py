@@ -1,7 +1,7 @@
 """Regularised logistic regression on send-time inputs, with exact per-input contributions.
 
-Used twice: for P(accept) and, on lost quotes, for P(declined rather than expired). Chosen over
-gradient boosting on the validation folds (notebook 04).
+Used twice: for P(accept) and, on lost quotes, for P(declined rather than expired). On the validation
+folds, gradient boosting at best ties it (notebook 04), and this keeps every number explainable.
 """
 
 from __future__ import annotations
