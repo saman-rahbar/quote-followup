@@ -184,8 +184,3 @@ scope and time, so treat them as leads rather than findings:
 - All 30 businesses that cancelled their subscription kept using the product afterwards.
 - Declines split almost evenly between price, timing, competitors, no response and changed scope,
   and 31% give no reason at all.
-
-## Time
-
-About two hours. 21 automated tests guard the main rules, including one that proves the model never
-sees the future, and they run on every push along with the linting.
